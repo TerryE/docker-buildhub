@@ -1,0 +1,119 @@
+version: "3.3"
+
+services:
+
+  httpd:
+    image: httpd
+    hostname: httpd
+    container_name: ${VHOST}_httpd
+    domainname: buildhub.local
+    build:
+      context: .
+      dockerfile: httpd-dockerfile
+    restart: always
+    volumes:
+      - /mnt/buildhub/www/ipb:/var/www/ipb
+      - var_log:/var/log
+    depends_on:
+      - php
+      - mysql
+    ports:
+      - 8080:80
+      - 4443:4443
+    secrets:
+      - fullchain
+      - privkey
+    environment:
+      - HOST_IP=10.1.0.2
+      - APACHE_LOG_DIR=/var/log/apache2
+    networks:
+      AMPstack:
+        ipv4_address: 10.1.0.2
+    links:
+      - php
+
+  php:
+    image: php
+    hostname: php-fpm
+    container_name: ${VHOST}_php
+    domainname: buildhub.local
+    build:
+      context: .
+      dockerfile: php-dockerfile
+      args:
+        PHP_VERSION: ${PHP_VERSION}
+    restart: always
+    volumes:
+      - /mnt/buildhub/www/ipb:/var/www/ipb
+    depends_on:
+      - mysql
+    ports:
+      - 9000:9000
+    networks:
+      AMPstack:
+        ipv4_address: 10.1.0.3
+    links:
+      - mysql
+
+  mysql:
+    image: mysql
+    hostname: mysql
+    container_name: ${VHOST}_mysql
+    domainname: buildhub.local
+    build:
+      context: .
+      dockerfile: mysql-dockerfile
+      args:
+        MYSQL_VERSION: ${MYSQL_VERSION}
+    restart: always
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - 3306:3306
+    networks:
+      AMPstack:
+        ipv4_address: 10.1.0.4
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - TZ=${TZ}
+
+  hk:
+    image: hk
+    hostname: hk
+    container_name: ${VHOST}_hk
+    domainname: buildhub.local
+    build:
+      context: .
+      dockerfile: hk-dockerfile
+    restart: always
+    volumes:
+      - var_log:/var/log
+    secrets:
+      - hk_id
+    networks:
+      AMPstack:
+        ipv4_address: 10.1.0.5
+
+networks:
+  AMPstack:
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.1.0.0/24
+
+volumes:
+  mysql_data:
+    external: true
+  var_log:
+    external: true
+
+secrets:
+  fullchain:
+    file: .secrets/fullchain.pem
+  privkey:
+    file: .secrets/privkey.pem
+  hk_id:
+    file: .secrets/id_rsa

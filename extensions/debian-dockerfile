@@ -1,0 +1,7 @@
+FROM debian:bullseye
+
+RUN /bin/sh -c set -eux; apt-get update; \
+    apt-get install -y --no-install-recommends \
+      vim.tiny procps iputils-ping lsof cron openssh-client tar gzip bzip2 logrotate; \
+    # rm -rf /var/lib/apt/lists/*
+

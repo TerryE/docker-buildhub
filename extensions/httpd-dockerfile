@@ -1,0 +1,8 @@
+ARG HTTPD_VER
+FROM httpd:${HTTPD_VER:-2.4-bullseye}
+
+RUN /bin/sh -c set -eux; apt-get update; \
+    apt-get install -y --no-install-recommends \
+      vim.tiny procps iputils-ping lsof; \
+    rm -rf /var/lib/apt/lists/*
+

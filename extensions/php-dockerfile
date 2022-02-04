@@ -1,0 +1,13 @@
+ARG  PHP_VER
+FROM php:${PHP_VER:-8.0-fpm-buster}
+
+RUN /bin/sh -c set -eux; apt-get update; \
+    apt-get install -y --no-install-recommends \
+      vim.tiny procps iputils-ping lsof; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN REPO=mlocati/docker-php-extension-installer/releases/latest/download; \
+    curl -sSLf -o /usr/local/bin/install-php-extensions \
+      https://github.com/${REPO}/install-php-extensions && \
+    chmod +x /usr/local/bin/install-php-extensions && \
+    install-php-extensions exif gd gmp mysqli opcache redis zip

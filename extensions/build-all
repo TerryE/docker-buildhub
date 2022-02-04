@@ -1,0 +1,30 @@
+#! /bin/bash
+
+SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+FORCE=$(test "$1" != "-f"; echo $?) 
+
+testi(){ return $(test -n "$(docker images $1 --format '{{.ID}}')"); }
+rmi(){ testi $1  && docker rmi $1; }
+
+build_base() {
+  local repo="$1" ver="$2" repo_ver="$2-$3"
+  local tag="${ver}-extra" ; tag=${tag%-}
+  local target="${repo}:${tag}"
+  local -u VNAME="${repo}_VER"
+
+  test $FORCE -eq 0 && testi $target && return 0
+  rmi $target
+  echo "Entering build $target"
+  docker build \
+    -f $SCRIPT_PATH/${repo}-dockerfile \
+    -t $target \
+    --build-arg $VNAME=$repo_ver \
+    $SCRIPT_PATH >> /tmp/${repo}-${ver}.log
+  echo "Build of $target completed"
+  tail -2 /tmp/${repo}-${ver}.log
+}
+
+build_base php     7.2      fpm-buster   &    # php:7.2 doesn't have a bullseye version
+build_base php     8.0      fpm-bullseye &
+build_base httpd   2.4      bullseye     &
+build_base debian  bullseye 

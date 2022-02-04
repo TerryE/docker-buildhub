@@ -1,0 +1,8 @@
+ARG MYSQL_VERSION
+FROM mysql:${MYSQL_VERSION}
+
+COPY etc/mysql/conf.d /etc/mysql/conf.d
+
+RUN test ! -d /var/log/mysql && \
+    mkdir /var/log/mysql && \
+    chown mysql:adm /var/log/mysql
