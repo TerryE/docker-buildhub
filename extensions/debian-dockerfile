@@ -1,7 +1,8 @@
 FROM debian:bullseye
 
+ARG HOST_ROOT
 RUN /bin/sh -c set -eux; apt-get update; \
     apt-get install -y --no-install-recommends \
-      vim.tiny procps iputils-ping lsof cron openssh-client tar gzip bzip2 logrotate; \
+         vim.tiny procps iputils-ping lsof cron openssh-client tar gzip bzip2 logrotate; \
+    echo "${HOST_ROOT}" > /etc/hosting_root; \
     # rm -rf /var/lib/apt/lists/*
-

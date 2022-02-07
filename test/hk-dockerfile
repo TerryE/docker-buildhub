@@ -1,13 +1,21 @@
 FROM debian:bullseye-extra
 
-COPY etc/hk /usr/local/hk/conf
-RUN mkfifo --mode 0666 /var/log/cron.log && \
-    sed --regexp-extended --in-place \
-      's/^session\s+required\s+pam_loginuid.so$/session optional pam_loginuid.so/' \
-      /etc/pam.d/cron
+ARG HOST_USER
+ENV HK_PREFIX /usr/local/hk
+ENV PATH $HK_PREFIX/bin:$PATH
+ENV HOST_USER ${HOST_USER}
 
-WORKDIR /usr/local/hk
+WORKDIR $HK_PREFIX
 
-ENTRYPOINT ["cron", "-f"] 
+RUN mkdir -p $HK_PREFIX/bin && rm    /etc/cron.*/*
 
+COPY       bin/hk /usr/local/hk/bin/
+COPY       etc/hk/crontab /etc/crontab
+
+WORKDIR    /usr/local/hk
+
+# The HouseKeeping startup script is in bin directory.  This preps the server and then
+# execs cron in the forground
+
+ENTRYPOINT ["cron", "-f"]
 

@@ -1,30 +1,38 @@
 #! /bin/bash
 
 SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-FORCE=$(test "$1" != "-f"; echo $?) 
+HOST_ROOT="$( cd $(dirname "$0")/..>/dev/null 2>&1 ; pwd -P )"
+FORCE=$([ "$A" == "-f" ] && echo Y)
+echo $HOST_ROOT
 
-testi(){ return $(test -n "$(docker images $1 --format '{{.ID}}')"); }
-rmi(){ testi $1  && docker rmi $1; }
+# Build the extra image.  This is skipped if the image exists unless "-f" is specified
 
-build_base() {
+build_extra() {
   local repo="$1" ver="$2" repo_ver="$2-$3"
   local tag="${ver}-extra" ; tag=${tag%-}
   local target="${repo}:${tag}"
   local -u VNAME="${repo}_VER"
+  local id=$(docker images $target --format '{{.ID}}')
 
-  test $FORCE -eq 0 && testi $target && return 0
-  rmi $target
+  # skip if image already build unless -f option set
+  [ -n "$id" ] && [ -z "$FORCE"  ] && return 0
+  [ -n "$id" ] && docker rmi $target
+  
   echo "Entering build $target"
   docker build \
     -f $SCRIPT_PATH/${repo}-dockerfile \
-    -t $target \
-    --build-arg $VNAME=$repo_ver \
+    -t $target                         \
+    --build-arg $VNAME=$repo_ver       \
+    --build-arg HOST_ROOT="$HOST_ROOT" \
     $SCRIPT_PATH >> /tmp/${repo}-${ver}.log
   echo "Build of $target completed"
+
   tail -2 /tmp/${repo}-${ver}.log
 }
 
-build_base php     7.2      fpm-buster   &    # php:7.2 doesn't have a bullseye version
-build_base php     8.0      fpm-bullseye &
-build_base httpd   2.4      bullseye     &
-build_base debian  bullseye 
+# Do any builds in parallel. Note that php:7.2 doesn't have a bullseye version
+
+build_extra debian  bullseye              &
+build_extra httpd   2.4      bullseye     &
+build_extra php     7.2      fpm-buster   &
+build_extra php     8.0      fpm-bullseye

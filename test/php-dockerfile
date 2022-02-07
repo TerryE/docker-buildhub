@@ -2,6 +2,9 @@ ARG PHP_VERSION
 FROM php:${PHP_VERSION}-extra
 
 COPY etc/php /usr/local/etc
+COPY bin/php /usr/local/bin
+
+WORKDIR /var/www/ipb
 
 RUN test ! -d /var/log/php && \
     mkdir /var/log/php && \

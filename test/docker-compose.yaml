@@ -29,8 +29,6 @@ services:
     networks:
       AMPstack:
         ipv4_address: 10.1.0.2
-    links:
-      - php
 
   php:
     image: php
@@ -52,8 +50,6 @@ services:
     networks:
       AMPstack:
         ipv4_address: 10.1.0.3
-    links:
-      - mysql
 
   mysql:
     image: mysql
@@ -91,8 +87,13 @@ services:
     restart: always
     volumes:
       - var_log:/var/log
+      - /run/docker-test-callback.pipe:/run/host-callback.pipe
+    environment:
+      - HOST_USER=${USER}
     secrets:
       - hk_id
+    depends_on:
+      - httpd
     networks:
       AMPstack:
         ipv4_address: 10.1.0.5

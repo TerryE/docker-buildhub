@@ -1,0 +1,67 @@
+#!/bin/bash
+
+if [[ -z "$1" ]]; then  # First time through
+
+   # Exit if the docker group daemon version is already running
+   ps -g docker -C $(basename $0) >/dev/null && exit
+
+   # This script uses group=docker to read the pipe so daemonise in $USER:docker
+   sudo -u $USER -g docker nohup $0 group-set > /dev/null 2>&1 &
+   exit
+
+fi
+
+# Now running daemonised in $USER:docker
+
+# Callback pipes embed the basename of the app tree
+
+ROOT=$(basename $(cd $(dirname "$0")/..>/dev/null 2>&1 ; pwd -P ))
+
+# Make the pipe is it doesn't exist
+
+pipe=/var/run/docker-${ROOT}-callback.pipe
+[[ -p $pipe ]] || ( sudo mkfifo -m 660 $pipe; sudo chown :docker $pipe )
+
+# Cleanup on abnorml exit
+
+trap "sudo rm -f $pipe" EXIT
+
+declare container cmd args
+
+while true; do
+
+  read container cmd args < $pipe
+  let status=$?; (($status>128)) && continue
+
+  case "$container" in
+
+    hk | httpd | mysql | php)
+#     echo "Container $container: $cmd $args"; \
+      case "$cmd" in
+        exec)
+#         echo "docker exec ${ROOT}_$container $args"; \
+          docker exec ${ROOT}_$container $args
+        ;;
+
+        kill)
+#         echo "docker kill -s $args ${ROOT}_$container"; \
+          docker kill -s $args ${ROOT}_$container
+        ;;
+
+        *)
+          echo "Unknown command: $cmd"
+        ;;
+      esac
+    ;;
+
+    quit | *)
+      break
+    ;;
+
+  esac;
+done
+
+sudo rm -f $pipe
+
+echo "Reader exiting"
+exit
