@@ -1,0 +1,44 @@
+#!/bin/bash
+#
+# This script is run as a systemd service.  It's purpose is to enable a
+# housekeeping container within an application execute a closed request in
+# services within the same application.
+#
+# It creates and listens to a root:docker pipe /var/run/docker-app-callback.pipe,
+# receiving command of the form <app> <service> <args> where <app>_<service>
+# is a valid docker container.  This script executes:
+#
+#     docker exec <app>_<service> service_callback <args>
+#
+# hence the receiving container must include a valid callback_request script
+# on its path, and which is able to process and dispatch such a request.
+#
+# This callback service muct be enabled within a container by volume mapping
+# this pipe into the requesting container, e.g.
+#
+#     volumes:
+#       - /var/run/docker-app-callback.pipe:/var/run/host-callback.pipe
+#
+
+# Only one copy of this script can be executing: exit if a copy is running:
+
+#ps -g docker -C $(basename $0) >/dev/null && exit
+
+trap "sudo rm -f $pipe" EXIT
+
+pipe=/var/run/docker-callback.pipe
+[[ -p $pipe ]] || (sudo mkfifo -m 660 $pipe; sudo chown root:docker $pipe )
+
+declare app service args
+
+while true; do
+
+  read app service args < $pipe
+  echo "$app $service $args "
+  status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
+  [[ "$status" = running ]] || continue
+  docker exec ${app}_${service} service_callback ${args}
+
+done
+
+exit

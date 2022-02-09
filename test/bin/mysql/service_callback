@@ -1,0 +1,13 @@
+#! /bin/bash
+#
+# Service callbacks for mysql container
+#
+# *  restart      Issue USR2 to mysqld process to restart, allowing log rotation
+#
+case "$1" in
+  restart)
+    kill -USR2 1 ;;
+
+  *)
+     ;;
+esac

@@ -1,0 +1,14 @@
+[Unit]
+Description=Docker callback pipe reader
+DefaultDependencies=no
+After=docker.service
+
+[Service]
+Type=simple
+User=root
+Group=docker
+ExecStart=/usr/local/sbin/docker-callback-reader start
+RemainAfterExit=true
+
+[Install]
+WantedBy=multi-user.target

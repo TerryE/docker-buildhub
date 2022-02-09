@@ -1,2 +1,0 @@
-#! /bin/bash
-echo php exec do_forum_task >/run/host-callback.pipe

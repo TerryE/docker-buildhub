@@ -1,9 +1,19 @@
 #! /bin/bash
 
+
 SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 HOST_ROOT="$( cd $(dirname "$0")/..>/dev/null 2>&1 ; pwd -P )"
 FORCE=$([ "$A" == "-f" ] && echo Y)
-echo $HOST_ROOT
+
+check_reader_intalled () {
+  [[ -f /etc/systemd/system/docker-callback-reader.service ]] && return
+  sudo cp -sf $HOST_ROOT/extensions/conf/docker-callback-reader.service /etc/systemd/system/
+  sudo cp -sf $HOST_ROOT/extensions/bin/docker-callback-reader /usr/local/sbin/
+  sudo systemctl daemon-reload
+  sudo systemctl enable docker-callback-reader
+  sudo systemctl start  docker-callback-reader
+}
+
 
 # Build the extra image.  This is skipped if the image exists unless "-f" is specified
 
@@ -31,6 +41,8 @@ build_extra() {
 }
 
 # Do any builds in parallel. Note that php:7.2 doesn't have a bullseye version
+
+check_reader_intalled
 
 build_extra debian  bullseye              &
 build_extra httpd   2.4      bullseye     &
