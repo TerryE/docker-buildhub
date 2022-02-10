@@ -7,8 +7,8 @@ FORCE=$([ "$A" == "-f" ] && echo Y)
 
 check_reader_intalled () {
   [[ -f /etc/systemd/system/docker-callback-reader.service ]] && return
-  sudo cp -sf $HOST_ROOT/extensions/conf/docker-callback-reader.service /etc/systemd/system/
-  sudo cp -sf $HOST_ROOT/extensions/bin/docker-callback-reader /usr/local/sbin/
+  sudo cp $HOST_ROOT/extensions/conf/docker-callback-reader.service /etc/systemd/system/
+  sudo cp $HOST_ROOT/extensions/bin/docker-callback-reader /usr/local/sbin/
   sudo systemctl daemon-reload
   sudo systemctl enable docker-callback-reader
   sudo systemctl start  docker-callback-reader

@@ -26,7 +26,7 @@
 
 trap "sudo rm -f $pipe" EXIT
 
-pipe=/var/run/docker-callback.pipe
+pipe=/var/run/docker-app-callback.pipe
 [[ -p $pipe ]] || (sudo mkfifo -m 660 $pipe; sudo chown root:docker $pipe )
 
 declare app service args
@@ -34,9 +34,9 @@ declare app service args
 while true; do
 
   read app service args < $pipe
-  echo "$app $service $args "
   status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
   [[ "$status" = running ]] || continue
+  echo "$(date -u) $app $service $args" >> /var/log/docker-callback.log
   docker exec ${app}_${service} service_callback ${args}
 
 done

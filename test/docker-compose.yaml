@@ -73,6 +73,8 @@ services:
       - VHOST=${VHOST}
     secrets:
       - mysql-root
+    security_opt:
+      - seccomp:unconfined
     networks:
       AMPstack:
         ipv4_address: 10.1.0.4
