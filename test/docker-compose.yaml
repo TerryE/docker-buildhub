@@ -1,4 +1,4 @@
-version: "3.4"
+version: "3.7"
 
 services:
 
@@ -104,6 +104,7 @@ services:
       context: .
       dockerfile: hk-dockerfile
     restart: always
+    init: true
     volumes:
       - var_log:/var/log
       - /run/docker-app-callback.pipe:/run/host-callback.pipe

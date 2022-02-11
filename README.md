@@ -33,3 +33,8 @@ A major advantage of Docker is that the setup and configuration is encapsulated 
 * Implement logrotation
 * Implement the nighly backup
 * Using environment contect so a single forum tree can be used to build both test and prod instances.
+
+## See Also
+
+*  [Migration Notes](//github.com/TerryE/docker-buildhub/wiki/Migration-Notes) on process for migrating from old-server
+*  [Current Issues](//github.com/TerryE/docker-buildhub/issues) for my (and other contributers) comments on open issues.

@@ -1,21 +1,21 @@
-FROM debian:bullseye-extra
+FROM alpine:3.15
 
 ARG HOST_USER
-ENV HK_PREFIX /usr/local/hk
-ENV PATH $HK_PREFIX/bin:$PATH
+ENV HK_PREFIX /usr/local/
 ENV HOST_USER ${HOST_USER}
 
 WORKDIR $HK_PREFIX
 
-RUN mkdir -p $HK_PREFIX/bin && rm    /etc/cron.*/*
+COPY bin/hk  /usr/local/bin/
+COPY etc/hk  /root
 
-COPY       bin/hk /usr/local/hk/bin/
-COPY       etc/hk/crontab /etc/crontab
+# Swap www-data:www-data to Debian standard 33:33 and install bash
 
-WORKDIR    /usr/local/hk
+RUN  deluser xfs; delgroup www-data; addgroup -g 33 www-data; \
+     adduser -G www-data -S -u 33 -H -D www-data; \
+     apk update; apk add bash; rm  /var/cache/apk/*.tar.gz
+     cat     /root/crontab > /etc/crontabs/root
 
-# The HouseKeeping startup script is in bin directory.  This preps the server and then
-# execs cron in the forground
+WORKDIR      /root
 
-ENTRYPOINT ["cron", "-f"]
-
+CMD  ["crond", "-f", "-l", "2"]
