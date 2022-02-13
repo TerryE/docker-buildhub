@@ -15,21 +15,21 @@ services:
       - mysql
     restart: always
     volumes:
-      - /mnt/buildhub/www/ipb:/var/www/ipb
+      - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
-      - 8080:80
-      - 4443:4443
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT:4443
     secrets:
       - fullchain
       - privkey
     environment:
-      - HOST_IP=10.1.0.2
+      - HOST_IP=${SUBNET}.2
       - APACHE_LOG_DIR=/var/log/apache2
       - VHOST=${VHOST}
     networks:
       AMPstack:
-        ipv4_address: 10.1.0.2
+        ipv4_address: ${SUBNET}.2
 
   php:
     image: php
@@ -46,12 +46,12 @@ services:
       - redis
     restart: always
     volumes:
-      - /mnt/buildhub/www/ipb:/var/www/ipb
+      - ${WWW_IPB_ROOT}:/var/www/ipb
     environment:
       - VHOST=${VHOST}
     networks:
       AMPstack:
-        ipv4_address: 10.1.0.3
+        ipv4_address: ${SUBNET}.3
 
   mysql:
     image: mysql
@@ -77,7 +77,7 @@ services:
       - seccomp:unconfined
     networks:
       AMPstack:
-        ipv4_address: 10.1.0.4
+        ipv4_address: ${SUBNET}.4
 
   redis:
     image: "redis:6.2-bullseye"
@@ -93,7 +93,7 @@ services:
       - ./etc/redis:/usr/local/etc/redis
     networks:
       AMPstack:
-        ipv4_address: 10.1.0.5
+        ipv4_address: ${SUBNET}.5
 
   hk:
     image: hk
@@ -115,14 +115,14 @@ services:
       - httpd
     networks:
       AMPstack:
-        ipv4_address: 10.1.0.6
+        ipv4_address: ${SUBNET}.6
 
 networks:
   AMPstack:
     ipam:
       driver: default
       config:
-        - subnet: 10.1.0.0/24
+        - subnet: ${SUBNET}.0/24
 
 secrets:
   fullchain:
