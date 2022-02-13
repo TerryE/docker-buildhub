@@ -1,6 +1,6 @@
 ## Background
 
-The scope of this project is a special interest forum that uses [Invision Community (IC)](https://invisioncommunity.com/) as its forum engine; this is served on a bare / self-managed VPS, and we've rehosted a few times over the years, mainly because the storage requirement have grown and and we need to use a supported LTS stack.  The current 6-core VPS with SSD storage now costs less that the 2-core + HDD VPS that we initially commission 6 years ago, and also and many factors less than using a managed IC service.
+The scope of this project is a special interest forum that uses [Invision Community (IC)](https://invisioncommunity.com/) as its forum engine; this is served on a bare / self-managed VPS, and we've rehosted a few times over the years, mainly because the storage requirement have grown and we need to use a supported LTS stack.  The current 6-core VPS with SSD storage now costs less that the 2-core + HDD VPS that we initially commission 6 years ago, and also and many factors less than using a managed IC service.
 
 My career was in IT and I consider myself a competent SysAdmin and developer.  I have administered forums, wikis and WordPress sites pro-bono for various communities over the years, but am now retired, so future SysAdmin continuity on this forum is a concern for me.
 
