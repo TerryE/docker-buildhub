@@ -91,7 +91,7 @@ services:
       - redis-pwd
     volumes:
       - redis_data:/var/lib/redis
-      - ./etc/redis:/usr/local/etc/redis
+      - ./etc/redis:/usr/local/etc/redis:ro
     networks:
       AMPstack:
         ipv4_address: ${SUBNET}.5

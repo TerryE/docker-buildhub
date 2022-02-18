@@ -13,7 +13,7 @@ COPY etc/hk  /root
 
 RUN  deluser xfs; delgroup www-data; addgroup -g 33 www-data; \
      adduser -G www-data -S -u 33 -H -D www-data; \
-     apk update; apk add bash; rm  /var/cache/apk/*.tar.gz
+     apk update; apk add bash; rm  /var/cache/apk/*.tar.gz; \
      cat     /root/crontab > /etc/crontabs/root
 
 WORKDIR      /root
