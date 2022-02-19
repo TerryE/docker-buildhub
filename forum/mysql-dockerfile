@@ -1,7 +1,0 @@
-ARG MYSQL_VERSION
-FROM mysql:${MYSQL_VERSION}
-
-COPY etc/mysql/conf.d /etc/mysql/conf.d
-
-RUN mkdir /var/log/mysql 2> /dev/null; \
-    chown mysql:adm /var/log/mysql

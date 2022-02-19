@@ -55,17 +55,13 @@ services:
         ipv4_address: ${SUBNET}.3
 
   mysql:
-    image: mysql
+    image: mysql:${MYSQL_VERSION}
     hostname: mysql
     container_name: ${VHOST}_mysql
     domainname: buildhub.local
-    build:
-      context: .
-      dockerfile: mysql-dockerfile
-      args:
-        MYSQL_VERSION: ${MYSQL_VERSION}
     restart: always
     volumes:
+      - ./etc/mysql/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
       - mysql_data:/var/lib/mysql
     environment:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql-root

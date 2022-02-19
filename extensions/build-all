@@ -3,7 +3,7 @@
 
 SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
 HOST_ROOT="$( cd $(dirname "$0")/..>/dev/null 2>&1 ; pwd -P )"
-FORCE=$([ "$A" == "-f" ] && echo Y)
+FORCE=$([ "$1" == "-f" ] && echo Y)
 
 check_reader_intalled () {
   [[ -f /etc/systemd/system/docker-callback-reader.service ]] && return
