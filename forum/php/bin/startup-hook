@@ -1,0 +1,8 @@
+#! /bin/bash #
+#
+#  These are the PHP ini settings that need changing
+#
+sed -i '/^disable_functions/s/=.*/=  "exec,system,passthru,popen,proc_open,shell_exec"/
+        /^expose_php/s/=.*/= Off/
+        /;html_errors/s/^.*/html_errors = Off/
+        /session.cookie_samesite/s/=.*/= On/' /etc/php8/php.ini

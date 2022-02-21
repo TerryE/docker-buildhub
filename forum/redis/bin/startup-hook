@@ -1,0 +1,7 @@
+#! /bin/bash
+#
+# redis.conf is in /etc.  Change the following defaults. 
+#
+sed -i '/^databases/s/ .*/ 4
+       s/^# maxmemory .*/maxmemory 8mb
+       s/^# maxmemory-policy .*/maxmemory-policy allkeys-lru/' /etc/redis.conf
