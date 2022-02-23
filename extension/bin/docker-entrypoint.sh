@@ -19,11 +19,15 @@ start_php () {
 }
 
 start_redis () {
+  # set context to redis lib and make sure al
+  cd /var/lib/redis
+  find . \! -user redis -exec chown redis '{}' +
+
   # if the first arg is present but not an option then exec it
   [ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
 
   # otherwise append as options
-  exec redis-server --requirepass $(cat /run/secrets/redis-pwd) --maxmemory 64mb "$@"
+  exec su-exec redis redis-server --requirepass $(cat /run/secrets/redis-pwd) --maxmemory 64mb "$@"
 }
 
 start_housekeeping () {
