@@ -13,9 +13,9 @@ start_apache () {
   exec "$@"
 }
 
-start_php-fpm () {
+start_php () {
   [ -z "$1" ] ||   exec "$@"
-  exec php-fpm -c conf/php -y conf/php-fpm.d/www.conf -F
+  exec php-fpm -F
 }
 
 start_redis () {
@@ -33,24 +33,34 @@ start_housekeeping () {
   # crond needs to be controlled by tini to handle shutdown requests
   exec tini /usr/sbin/crond -f -l 2 -L /var/log/cron/cron.log -c /etc/crontabs
 }
-#
-# Call startup hook if it exists (preferentially in the local $HOSTNAME/bin folder)
-#
-[ -d /usr/local/$HOSTNAME ] && cd /usr/local/$HOSTNAME && export PATH=$(pwd)/bin:${PATH}
-[ -d /var/log/$HOSTNAME ] || mkdir /var/log/$HOSTNAME
 
-[ -f bin/startup-hook ] && source bin/startup-hook "$@";
-[ -f /usr/local/bin/startup-hook ] && source /usr/local/bin/startup-hook "$@";
 #
-# Use the local Docker entrypoint, if defined in the local $HOSTNAME/bin folder)
+#  ========================= Entry point =========================
 #
-[ -f bin/docker-entrypoint ] && exec bin/docker-entrypoint "$@"
+[ -d /var/log/${HOSTNAME} ] || mkdir /var/log/${HOSTNAME} # Make log dir if needed
+cd /usr/local
 #
-# Otherwise use the above start_XXXX function
+# Use the local Docker entrypoint, if defined in the local ${HOSTNAME}/bin folder)
 #
-case "$HOSTNAME" in
+[ -f ${HOSTNAME}/bin/docker-entrypoint ] && \
+     exec ${HOSTNAME}/bin/docker-entrypoint "$@"
+
+#
+# Otherwise use this script. Change to local/${HOSTNAME} if it exists.
+#
+[ -d ${HOSTNAME}/bin ] && export PATH="/usr/local/${HOSTNAME}/bin:${PATH}"
+[ -d ${HOSTNAME} ] && cd  ${HOSTNAME}
+#
+# Ccall an optional startup hook if it  exists in the current bin folder, so  
+# the container can customise /etc and other files before starting the service.
+#
+[ -f  bin/startup-hook ] && source bin/startup-hook "$@"
+
+echo "$(date -u) Entering ${HOSTNAME} start-up" 
+
+case "${HOSTNAME}" in
     apache2)  start_apache        "$@" ;;
-    php-fpm)  start_php-fpm       "$@" ;;
+    php)      start_php           "$@" ;;
     redis)    start_redis         "$@" ;;
     hk)       start_housekeeping  "$@" ;;
     *)        exec                "$@" ;;

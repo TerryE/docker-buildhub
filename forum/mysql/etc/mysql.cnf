@@ -1,6 +1,7 @@
 #
 #  Tweaks to default MySQL paramaters to allocate 2Gb to InnoDB etc.
 #
+[mysqld]
 back_log                      = 50
 log_error                     = /var/log/mysql/error.log
 

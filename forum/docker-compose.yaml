@@ -12,7 +12,6 @@ services:
     restart: on-failure
     volumes:
       - ./apache2/conf:/usr/local/apache2/conf:ro
-      - ./apache2/conf:/usr/local/apache2/conf:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
@@ -32,7 +31,7 @@ services:
 
   php:
     image: alpine:${ALPINE_VERSION}
-    hostname: php-fpm
+    hostname: php
     container_name: ${VHOST}_php
     depends_on:
       - mysql
@@ -41,6 +40,7 @@ services:
     volumes:
       - ./php:/usr/local/php:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
+      - var_log:/var/log
     environment:
       VHOST: ${VHOST}
     networks:
@@ -55,6 +55,7 @@ services:
     volumes:
       - ./mysql/etc/mysql.cnf/:/etc/mysql/conf.d/mysql.cnf:ro
       - mysql_data:/var/lib/mysql
+      - var_log:/var/log
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -78,6 +79,7 @@ services:
     volumes:
       - ./redis:/usr/local/redis:ro
       - redis_data:/var/lib/redis
+      - var_log:/var/log
     networks:
       AMPstack:
         ipv4_address: ${SUBNET}.5

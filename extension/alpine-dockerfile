@@ -1,4 +1,5 @@
-FROM alpine:3.15
+ARG ALPINE_VER
+FROM alpine:${ALPINE_VER}
 
 ARG HOST_USER
 ENV HOST_USER ${HOST_USER}
@@ -28,7 +29,7 @@ RUN   CORE='certbot logrotate su-exec redis tini'; \
       GOODIES='iputils procps tree util-linux xz'; \
       apk add ${CORE} ${APACHE} ${PHP} ${GOODIES}; \
       ln -s php-fpm8 /usr/sbin/php-fpm; ln -s php8 /usr/sbin/php; \
-      ln -s php8 /etc/php; mv /var/log/php{8,}
+      ln -s php8 /etc/php
 
 # The docker-entrypoint command sets the context to start the command as a docker daemon
 # service and executes the command to start the relevant daemon for the container (this
