@@ -32,8 +32,6 @@ start_redis () {
 
 start_housekeeping () {
   [ -d /var/log/cron ] || mkdir /var/log/cron
-  # symlink to the local crontab
-  [ -f conf/crontab ] && ln -s $(pwd)/conf/crontab /etc/crontabs/root
   # crond needs to be controlled by tini to handle shutdown requests
   exec tini /usr/sbin/crond -f -l 2 -L /var/log/cron/cron.log -c /etc/crontabs
 }

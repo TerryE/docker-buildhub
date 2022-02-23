@@ -53,8 +53,10 @@ services:
     container_name: ${VHOST}_mysql
     restart: on-failure
     volumes:
-      - ./mysql/etc/mysql.cnf/:/etc/mysql/conf.d/mysql.cnf:ro
+      - ./mysql/conf/mysql.cnf/:/etc/mysql/conf.d/mysql.cnf:ro
+      - ../../extension/bin/service_callback:/usr/local/bin/service_callback:ro
       - mysql_data:/var/lib/mysql
+      - backups:/backups
       - var_log:/var/log
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
@@ -90,8 +92,7 @@ services:
     container_name: ${VHOST}_hk
     domainname: buildhub.local
     volumes:
-      - ./etc/hk:/usr/local/hk/conf:ro
-      - ./bin/hk:/usr/local/hk/conf:ro
+      - ./hk:/usr/local/hk:ro
       - var_log:/var/log
       - /run/docker-app-callback.pipe:/run/host-callback.pipe
       - backups:/backups
