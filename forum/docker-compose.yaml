@@ -134,7 +134,7 @@ secrets:
 volumes:
   mysql_data:
     external:
-      name: ${VHOST}_mysql_data
+      name: ${DBHOST}_mysql_data
   var_log:
     external:
       name: ${VHOST}_var_log
