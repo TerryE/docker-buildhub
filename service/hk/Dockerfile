@@ -1,8 +1,8 @@
-ARG ALPINE_VER
-FROM alpine:${ALPINE_VER}
+ARG ALPINE_VERSION
+FROM alpine:${ALPINE_VERSION}
 
-ARG HOST_USER
-ENV HOST_USER ${HOST_USER}
+#ARG HOST_USER
+#ENV HOST_USER ${HOST_USER}
 
 # Swap www-data:www-data to the Debian standard 33:33 and install bash as default shell
 
@@ -19,14 +19,14 @@ WORKDIR /usr/local
 # php-fpm, redis or cron to be executed in a container based on this image.  The GOODIES
 # list are useful for debugging at the bash prompt.
 #
-# Also drop the 8 from PHP names and paths
+# Also add aliases dropping the 8 from PHP names and paths
 
 RUN   CORE='certbot logrotate su-exec redis tini'; \
       APACHE='apache2 apache2-ssl apache2-proxy'; \
       PHP_MODS='fpm bcmath curl dom exif fileinfo gd gmp imap mbstring mysqli openssl \
           phar redis session simplexml sodium xml xmlreader xmlwriter opcache zip'; \
       PHP=$(echo php8; for m in ${PHP_MODS}; do echo -n " php8-${m}"; done); \
-      GOODIES='iputils procps tree util-linux xz'; \
+      GOODIES='iputils nmap procps tree util-linux xz'; \
       apk add ${CORE} ${APACHE} ${PHP} ${GOODIES}; \
       ln -sT /usr/sbin/php-fpm{8,};\
       ln -sT /usr/bin/php{8,}; \
@@ -36,6 +36,6 @@ RUN   CORE='certbot logrotate su-exec redis tini'; \
 # service and executes the command to start the relevant daemon for the container (this
 # command can be overridden in compose service definition).
 
-# The configuration of the various daemons
-COPY bin/docker-entrypoint.sh bin/service_callback bin/
+# The configuration of the various docker entrypoint and callback scripts
+COPY docker-*.sh bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

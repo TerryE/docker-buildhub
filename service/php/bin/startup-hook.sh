@@ -13,7 +13,7 @@ sed -i '/^disable_functions/s/=.*/=  "exec,system,passthru,popen,proc_open,shell
 
 sed -i '/error_log =/s!.*!error_log = /var/log/php/error.log!
         /daemonize =/s!.*!daemonize = no!' /etc/php/php-fpm.conf
+        
+cp  {/usr/local/conf,/etc/php}/php-fpm.d/www.conf
 
-cp  {/usr/local/php/conf,/etc/php}/php-fpm.d/www.conf
- 
 echo "$(date -u) PHP config updated" > /proc/1/fd/1

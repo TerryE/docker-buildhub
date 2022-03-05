@@ -1,0 +1,150 @@
+version: "3.7"
+
+services:
+
+  # hk, httpd, php, redis all use the same image that is build in service hk target
+  
+  hk:
+    image: alpine:${ALPINE_VERSION}-extended
+    hostname: hk
+    container_name: ${VHOST}_hk
+    domainname: buildhub.local
+    build:
+      context: ./service
+      dockerfile: hk/Dockerfile
+      args:
+        ALPINE_VERSION: ${ALPINE_VERSION}
+    volumes:
+      - ./service/hk/bin:/usr/local/sbin:ro
+      - ./service/hk/conf:/usr/local/conf:ro
+      - /run/docker-app-callback.pipe:/run/host-callback.pipe
+      - var_log:/var/log
+      - backups:/backups
+    restart: on-failure
+    environment:
+      VHOST: ${VHOST}
+    networks:
+      AMPstack:
+        ipv4_address: ${SUBNET}.2
+
+  httpd:
+    image: alpine:${ALPINE_VERSION}-extended
+    hostname: httpd
+    container_name: ${VHOST}_httpd
+    depends_on:
+      - hk
+      - php
+      - mysql
+    restart: on-failure
+    volumes:
+      - ./service/httpd/conf:/usr/local/conf:ro
+      - ${WWW_IPB_ROOT}:/var/www/ipb
+      - var_log:/var/log
+    ports:
+      - ${HTTP_PORT}:80
+      - ${HTTPS_PORT}:443
+    secrets:
+      - fullchain
+      - privkey
+    environment:
+      VHOST: ${VHOST}
+      HOST_IP: ${SUBNET}.3
+      HTTPS_PORT: ${HTTPS_PORT}
+      APACHE_LOG_DIR: /var/log/apache2
+    networks:
+      AMPstack:
+        ipv4_address: ${SUBNET}.3
+
+  php:
+    image: alpine:${ALPINE_VERSION}-extended
+    hostname: php
+    container_name: ${VHOST}_php
+    depends_on:
+      - hk
+      - mysql
+      - redis
+    restart: on-failure
+    volumes:
+      - ./service/php/bin:/usr/local/sbin:ro
+      - ./service/php/conf:/usr/local/conf:ro
+      - ${WWW_IPB_ROOT}:/var/www/ipb
+      - var_log:/var/log
+    environment:
+      VHOST: ${VHOST}
+    networks:
+      AMPstack:
+        ipv4_address: ${SUBNET}.4
+
+  redis:
+    image: alpine:${ALPINE_VERSION}-extended
+    hostname: redis
+    container_name: ${VHOST}_redis
+    depends_on:
+      - hk
+    restart: on-failure
+    volumes:
+      - ./service/redis/bin:/usr/local/sbin:ro
+      - redis_data:/var/lib/redis
+      - var_log:/var/log
+    secrets:
+      - redis-pwd
+    networks:
+      AMPstack:
+        ipv4_address: ${SUBNET}.5
+
+  mysql:
+    image: mysql:${MYSQL_VERSION}
+    hostname: mysql
+    container_name: ${VHOST}_mysql
+    restart: on-failure
+    volumes:
+      - ./service/mysql/conf/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
+      - ./service/docker-service_callback.sh:/usr/local/bin/service_callback:ro
+      - ./service/docker_entrypoint.sh:/usr/local/sbin/docker_entrypoint.sh
+      - mysql_data:/var/lib/mysql
+      - backups:/backups
+      - var_log:/var/log
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      TZ: ${TZ}
+      VHOST: ${VHOST}
+    secrets:
+      - mysql-root
+    security_opt:
+      - seccomp:unconfined
+    networks:
+      AMPstack:
+        ipv4_address: ${SUBNET}.6
+
+
+networks:
+  AMPstack:
+    ipam:
+      driver: default
+      config:
+        - subnet: ${SUBNET}.0/24
+
+secrets:
+  fullchain:
+    file: .secrets/fullchain.pem
+  privkey:
+    file: .secrets/privkey.pem
+  mysql-root:
+    file: .secrets/mysql-root
+  redis-pwd:
+    file: .secrets/redis-pwd
+
+volumes:
+  mysql_data:
+    external:
+      name: ${DBHOST}_mysql_data
+  var_log:
+    external:
+      name: ${VHOST}_var_log
+  backups:
+    external:
+      name: ${VHOST}_backups
+  redis_data:
+    external:
+      name: ${VHOST}_redis_data

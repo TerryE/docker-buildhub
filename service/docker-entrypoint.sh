@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Docker startup for Alpine Containers.
-# The ENV variable HOSTNAME selects the init required
+# Docker startup for all Containers. The ENV variable HOSTNAME selects the init required
 
 set -e
 
@@ -11,6 +10,17 @@ start_apache () {
   [ -L modules ] || ln -s /usr/lib/apache2 -T modules
   [ -z "$1" ] && exec httpd -d $(pwd) -DFOREGROUND -f conf/httpd.conf
   exec "$@"
+}
+
+start_housekeeping () {
+  [ -d /var/log/cron ] || mkdir /var/log/cron
+  # crond needs to be controlled by tini to handle shutdown requests
+  exec tini /usr/sbin/crond -f -l 2 -L /var/log/cron/cron.log -c /etc/crontabs
+}
+
+start_mysql () {
+  # Chain to the package entrypoint script to do DB recovery, etc.
+  exec /usr/local/bin/docker_entrypoint.sh  "$@"
 }
 
 start_php () {
@@ -30,40 +40,27 @@ start_redis () {
   exec su-exec redis redis-server --requirepass $(cat /run/secrets/redis-pwd) --maxmemory 64mb "$@"
 }
 
-start_housekeeping () {
-  [ -d /var/log/cron ] || mkdir /var/log/cron
-  # crond needs to be controlled by tini to handle shutdown requests
-  exec tini /usr/sbin/crond -f -l 2 -L /var/log/cron/cron.log -c /etc/crontabs
-}
-
 #
 #  ========================= Entry point =========================
 #
+
 [ -d /var/log/${HOSTNAME} ] || mkdir /var/log/${HOSTNAME} # Make log dir if needed
+
 cd /usr/local
-#
-# Use the local Docker entrypoint, if defined in the local ${HOSTNAME}/bin folder)
-#
-[ -f ${HOSTNAME}/bin/docker-entrypoint ] && \
-     exec ${HOSTNAME}/bin/docker-entrypoint "$@"
 
 #
-# Otherwise use this script. Change to local/${HOSTNAME} if it exists.
-#
-[ -d ${HOSTNAME}/bin ] && export PATH="/usr/local/${HOSTNAME}/bin:${PATH}"
-[ -d ${HOSTNAME} ] && cd  ${HOSTNAME}
-#
-# Ccall an optional startup hook if it  exists in the current bin folder, so  
+# Call an optional startup hook if it  exists in the current sbin folder, so
 # the container can customise /etc and other files before starting the service.
 #
-[ -f  bin/startup-hook ] && source bin/startup-hook "$@"
+[ -f  sbin/startup-hook.sh ] && sbin/startup-hook.sh "$@"
 
-echo "$(date -u) Entering ${HOSTNAME} start-up" 
+echo "$(date -u) Entering ${HOSTNAME} start-up"
 
 case "${HOSTNAME}" in
-    apache2)  start_apache        "$@" ;;
+    hk)       start_housekeeping  "$@" ;;
+    httpd)    start_apache        "$@" ;;
+    mysql)    start_mysql         "$@" ;;
     php)      start_php           "$@" ;;
     redis)    start_redis         "$@" ;;
-    hk)       start_housekeeping  "$@" ;;
     *)        exec                "$@" ;;
 esac
