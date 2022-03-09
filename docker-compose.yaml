@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
 
-  # hk, httpd, php, redis all use the same image that is build in service hk target
+  # hk, httpd, php, redis, sshd all use the same image that is build in service hk target
   
   hk:
     image: alpine:${ALPINE_VERSION}-extended
@@ -23,9 +23,6 @@ services:
     restart: on-failure
     environment:
       VHOST: ${VHOST}
-    networks:
-      AMPstack:
-        ipv4_address: ${SUBNET}.2
 
   httpd:
     image: alpine:${ALPINE_VERSION}-extended
@@ -38,22 +35,19 @@ services:
     restart: on-failure
     volumes:
       - ./service/httpd/conf:/usr/local/conf:ro
+      - ./service/httpd/bin:/usr/local/sbin:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
-      - ${HTTP_PORT}:80
-      - ${HTTPS_PORT}:443
+      - "${HTTP_PORT}:80"
+      - "${HTTPS_PORT}:443"
     secrets:
       - fullchain
       - privkey
     environment:
       VHOST: ${VHOST}
-      HOST_IP: ${SUBNET}.3
       HTTPS_PORT: ${HTTPS_PORT}
       APACHE_LOG_DIR: /var/log/apache2
-    networks:
-      AMPstack:
-        ipv4_address: ${SUBNET}.3
 
   php:
     image: alpine:${ALPINE_VERSION}-extended
@@ -71,9 +65,6 @@ services:
       - var_log:/var/log
     environment:
       VHOST: ${VHOST}
-    networks:
-      AMPstack:
-        ipv4_address: ${SUBNET}.4
 
   redis:
     image: alpine:${ALPINE_VERSION}-extended
@@ -88,9 +79,6 @@ services:
       - var_log:/var/log
     secrets:
       - redis-pwd
-    networks:
-      AMPstack:
-        ipv4_address: ${SUBNET}.5
 
   mysql:
     image: mysql:${MYSQL_VERSION}
@@ -98,9 +86,8 @@ services:
     container_name: ${VHOST}_mysql
     restart: on-failure
     volumes:
-      - ./service/mysql/conf/mysql.cnf:/etc/mysql/conf.d/mysql.cnf:ro
-      - ./service/docker-service_callback.sh:/usr/local/bin/service_callback:ro
-      - ./service/docker_entrypoint.sh:/usr/local/sbin/docker_entrypoint.sh
+      - ./service/mysql/conf:/usr/local/etc:ro
+      - ./service/mysql/bin:/usr/local/sbin:ro
       - mysql_data:/var/lib/mysql
       - backups:/backups
       - var_log:/var/log
@@ -113,19 +100,29 @@ services:
       - mysql-root
     security_opt:
       - seccomp:unconfined
-    networks:
-      AMPstack:
-        ipv4_address: ${SUBNET}.6
 
-
-networks:
-  AMPstack:
-    ipam:
-      driver: default
-      config:
-        - subnet: ${SUBNET}.0/24
+  sshd:
+    image: alpine:${ALPINE_VERSION}-extended
+    hostname: sshd
+    container_name: ${VHOST}_sshd
+    depends_on:
+      - hk
+    restart: on-failure
+    volumes:
+      - ./service/sshd/bin:/usr/local/sbin:ro
+      - /etc/ssh:/usr/local/conf:ro
+      - var_log:/var/log
+      - backups:/backups
+    ports:
+      - "${SSH_PORT}:22"
+    environment:
+      VHOST: ${VHOST}
+    secrets:
+      - authorized_keys
 
 secrets:
+  authorized_keys:
+    file: .secrets/authorized_keys
   fullchain:
     file: .secrets/fullchain.pem
   privkey:

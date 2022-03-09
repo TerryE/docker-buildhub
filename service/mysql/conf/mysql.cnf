@@ -3,10 +3,11 @@
 #
 [mysqld]
 back_log                      = 50
-log_error                     = /var/log/mysql/error.log
+;log_error                     = /var/log/mysql/error.log
 
 max_allowed_packet            = 16M
 max_binlog_size               = 100M
+binlog_expire_logs_seconds    = 60
 max_connect_errors            = 10
 max_connections               = 20
 
@@ -14,7 +15,7 @@ myisam-recover-options        = BACKUP
 myisam_sort_buffer_size       = 64M
 key_buffer_size               = 16M
 
-symbolic-links                = 0
+#symbolic-links                = 0
 
 table_open_cache              = 2048
 
@@ -22,3 +23,5 @@ innodb_buffer_pool_instances  = 8
 innodb_buffer_pool_size       = 2G
 innodb_open_files             = 2048
 innodb_thread_sleep_delay     = 2000
+
+user                          = mysql

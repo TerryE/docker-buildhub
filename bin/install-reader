@@ -1,0 +1,11 @@
+#! /bin/bash
+
+HOST_ROOT="$( cd $(dirname "$0")/..>/dev/null 2>&1 ; pwd -P )"
+
+[[ -f /etc/systemd/system/docker-callback-reader.service ]] && return
+sudo cp $HOST_ROOT/conf/docker-callback-reader.service /etc/systemd/system/
+sudo cp $HOST_ROOT/bin/docker-callback-reader /usr/local/sbin/
+sudo systemctl daemon-reload
+sudo systemctl enable docker-callback-reader
+sudo systemctl start  docker-callback-reader
+

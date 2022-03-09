@@ -8,7 +8,7 @@
 # receiving command of the form <app> <service> <args> where <app>_<service>
 # is a valid docker container.  This script executes:
 #
-#     docker exec <app>_<service> service_callback <args>
+#     docker exec <app>_<service> docker-service-callback.sh <args>
 #
 # hence the receiving container must include a valid callback_request script
 # on its path, and which is able to process and dispatch such a request.
@@ -35,9 +35,10 @@ while true; do
 
   read app service args < $pipe
   status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
-  [[ "$status" = running ]] || continue
-  echo "$(date -u) $app $service $args" >> /var/log/docker-callback.log
-  docker exec ${app}_${service} service_callback ${args}
+  if [ "$status" == "running" ]; then
+    echo "$(date -u) $app $service $args" >> /var/log/docker-callback.log
+    docker exec ${app}_${service} docker-service-callback.sh ${args}
+  fi
 
 done
 
