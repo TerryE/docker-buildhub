@@ -1,2 +1,0 @@
-#! /bin/bash
-host bin/testforum-cronjob $$TASK_KEY

@@ -24,7 +24,7 @@ chown 0:0           /etc/crontabs/root
 #
 #  -  mysql and sshd are low volume use Docker logging
 
-echo 'var/log/cron/*.log {
+echo '/var/log/cron/*.log {
   weekly
   missingok
   rotate 8

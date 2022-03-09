@@ -34,8 +34,8 @@ services:
       - mysql
     restart: on-failure
     volumes:
-      - ./service/httpd/conf:/usr/local/conf:ro
       - ./service/httpd/bin:/usr/local/sbin:ro
+      - ./service/httpd/conf:/usr/local/conf:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
@@ -86,11 +86,11 @@ services:
     container_name: ${VHOST}_mysql
     restart: on-failure
     volumes:
-      - ./service/mysql/conf:/usr/local/etc:ro
       - ./service/mysql/bin:/usr/local/sbin:ro
+      - ./service/mysql/conf:/usr/local/etc:ro
       - mysql_data:/var/lib/mysql
-      - backups:/backups
       - var_log:/var/log
+      - backups:/backups
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
       MYSQL_DATABASE: ${MYSQL_DATABASE}

@@ -22,7 +22,7 @@ WORKDIR /usr/local
 # for debugging at the bash prompt.
 
 RUN \
-  CORE='certbot logrotate su-exec redis tini'; \
+  CORE='certbot logrotate su-exec redis tar tini'; \
   APACHE='apache2 apache2-ssl apache2-proxy'; \
   PHP_MODS='fpm bcmath curl dom exif fileinfo gd gmp imap mbstring mysqli openssl \
       phar redis session simplexml sodium xml xmlreader xmlwriter opcache zip'; \
