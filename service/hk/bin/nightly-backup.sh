@@ -1,4 +1,4 @@
-#! /bin/bash
+  #! /bin/bash
 #
 # Backup the IPS system to ~forum/backups
 #
@@ -31,8 +31,8 @@
 #    month are retained.  On the 1st of the month the dump all of the remaining daily
 #    backups prior to the previous month are also culled.
 
-[ "$VHOST" == "forum" ] || exit   # backups are only implemented on the live forum
-
+[ "$VHOST" == "forum" ] || exit   # backups are only carried out on the live forum
+  
 umask 117
 cd /backups
 
@@ -71,8 +71,8 @@ echo -n "$(date -u) Finished www backup" > /proc/1/fd/1
 
 let DD=$(date +%-d)                            # Current day of this month
 let UTS_MM01=$(date -d $(date +%Y-%m-01) +%s)  # Unix time for midnight 1st of month
-let UTS_pMlD=$((UT_MM01-86400))                # Unix time for midnight 1 day early
-let PMLD=$(date -d @$UT_pMlD +%d)              # Number of days last month
+let UTS_pMlD=$((UTS_MM01-86400))               # Unix time for midnight 1 day early
+let PMLD=$(date -d @$UTS_pMlD +%d)             # Number of days last month
 let DAYS=$((PMLD+DD-1))                        # mtime offset
 
 cd sql-backups

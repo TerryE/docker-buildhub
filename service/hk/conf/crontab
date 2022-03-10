@@ -11,4 +11,4 @@ SHELL=/bin/sh
 # *  *  *  *  *  command to be executed
   *  *  *  *  *  echo ${VHOST} php task >/run/host-callback.pipe
  10  2  *  *  *  logrotate /etc/logrotate.conf
-  0  4  *  *  *  nightly-backup.sh
+  0  4  *  *  *  nightly-backup.
