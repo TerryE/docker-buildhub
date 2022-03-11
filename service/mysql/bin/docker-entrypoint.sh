@@ -18,9 +18,12 @@ cp /usr/local/etc/* /etc/mysql/conf.d/
 # if the first arg is present but not an option then exec it, otherwise chain to the
 # stanard MySQL entrypoint script to do DB recovery, startup, etc, but append any options
 
-[ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
+echo "$(date -u) MySQL startup args " "$@" > /proc/1/fd/1
+#                ==================
+
+[ -n "$1" ] && [ "${1#-}" == "$1" ] && [ "$1" != "mysqld" ] && exec "$@"
 
 echo "$(date -u) MySQL startup: chaining to standard entrypoint" > /proc/1/fd/1
 #                ==============================================
-exec /usr/local/bin/docker-entrypoint.sh  "$@"
+exec tini -vv /usr/local/bin/docker-entrypoint.sh  "$@"
 

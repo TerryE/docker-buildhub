@@ -37,4 +37,4 @@ echo "$(date -u) PHP startup: starting php-fpm service" > /proc/1/fd/1
 # if the first arg is present but not an option then exec it, otherwise append to php-fpm
   
 [ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
-exec php-fpm -F "$@"
+exec tini php-fpm -F "$@"

@@ -30,4 +30,4 @@ echo "$(date -u) httpd startup: starting httpd service" > /proc/1/fd/1
 # if the first arg is present but not an option then exec it, otherwise append to httpd
 
 [ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
-exec httpd -d $(pwd) -DFOREGROUND -f conf/httpd.conf "$@"
+exec tini -v httpd -d $(pwd) -DFOREGROUND -f conf/httpd.conf "$@"

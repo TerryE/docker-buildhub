@@ -82,9 +82,14 @@ services:
       - redis-pwd
 
   mysql:
-    image: mysql:${MYSQL_VERSION}
+    image: mysql:${MYSQL_VERSION}-extended
     hostname: mysql
     container_name: ${VHOST}_mysql
+    build:
+      context: ./service
+      dockerfile: mysql/Dockerfile
+      args:
+        MYSQL_VERSION: ${MYSQL_VERSION}
     restart: on-failure
     volumes:
       - ./service/mysql/bin:/usr/local/sbin:ro
