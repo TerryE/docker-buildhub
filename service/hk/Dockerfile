@@ -24,8 +24,8 @@ WORKDIR /usr/local
 RUN \
   CORE='certbot logrotate su-exec redis tar tini'; \
   APACHE='apache2 apache2-ssl apache2-proxy'; \
-  PHP_MODS='fpm bcmath curl dom exif fileinfo gd gmp imap mbstring mysqli openssl \
-      phar redis session simplexml sodium xml xmlreader xmlwriter opcache zip'; \
+  PHP_MODS='fpm bcmath curl ctype dom exif fileinfo gd gmp imap mbstring mysqli \
+      openssl phar redis session simplexml sodium xml xmlreader xmlwriter opcache zip'; \
   PHP=$(echo php8; for m in ${PHP_MODS}; do echo -n " php8-${m}"; done); \
   SSH='openssh-server openssh-server-pam openssh-sftp-server rsync'; \
   GOODIES='iputils nmap procps tree util-linux xz'; \

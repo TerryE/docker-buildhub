@@ -13,7 +13,7 @@ case $1 in
     mysqldump --opt ipb > /tmp/ipb.sql
     xz /tmp/ipb.sql
     chown www-data:www-data /tmp/ipb.sql
-    mv {/tmp/ipd,/backups/sql-backups/$DATE}.sql.xz
+    mv {/tmp/ipb,/backups/sql-backups/$DATE}.sql.xz
     echo "$(date -u) SQL backup completed in $((t-SECONDS))secs." \
        > /proc/1/fd/1 ;;
 

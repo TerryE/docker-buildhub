@@ -60,6 +60,7 @@ tar --directory=/var/www --listed-incremental=backups/ipb-level$LEVEL.snar \
     --create --anchored --exclude ipb/datastore/* \
     --file=backups/${DATE}-var_www-$TYPE.tar \
     ipb
+chown www-data:www-data ${DATE}-var_www-$TYPE.tar
 
 test "$LEVEL" = "1" && cp backups/ipb-level1.snar backups/ipb-level2.snar
 
@@ -82,5 +83,5 @@ DELSQLS=$(find  *.sql.xz -mtime +$DAYS ! -name "20??-??-01.sql.xz")
 
 cd ../backups
 DELTARS=$(find *-var_www-daily.tar -mtime +$DAYS)
-[ -n "$DELSQLS" ] && ( echo -n "$(date -u) Culling old daily tar backups: "
+[ -n "$DELTARS" ] && ( echo -n "$(date -u) Culling old daily tar backups: "
                        rm -v $DELTARS) > /proc/1/fd/1
