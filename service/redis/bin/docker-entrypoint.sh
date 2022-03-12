@@ -7,11 +7,14 @@ echo "$(date -u) Entering Redis startup" > /proc/1/fd/1
 chown redis /var/log/redis
 
 #  These are the Redis conf settings that need changing
-
-sed -i '/databases /s!.*!databases 4!
-        /syslog-enabled /s!.*!syslog-enabled no!
-        /^\(# \)\?maxmemory /s!.*!maxmemory 8mb!
-        /^\(# \)\?maxmemory-policy /s!.*!maxmemory-policy allkeys-lru!' /etc/redis.conf
+bind 127.0.0.1 -::1
+terry@ip-92-205-58-85:~/prod$ # 
+export HOST_IP=$(ip addr show dev eth0 | grep inet | cut -b 10- |cut -d / -f 1)
+sed -i "/^bind /s/.*/bind ${HOST_IP}/
+        /syslog-enabled /s/.*/syslog-enabled no/
+	/databases /s/.*/databases 4/
+        /^# maxmemory /s/.*/maxmemory 8mb/
+        /^# maxmemory-policy /s/.*/maxmemory-policy allkeys-lru/" /etc/redis.conf
 
 # The logrotate callback only needs to rotates the logs for Redis, so drop rest.  Note
 # that Redis doesn't cache the logfile open, so no need for a graceful reload
@@ -30,6 +33,5 @@ echo "$(date -u) Redis startup: starting Redis service" > /proc/1/fd/1
 # if the first arg is not an option then exec it, otherwise append as options
   
 [ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
-exec tini su-exec redis redis-server /etc/redis.conf \
-                    --requirepass $(cat /run/secrets/redis-pwd) \
-                    --maxmemory 64mb --loglevel verbose "$@"
+exec su-exec redis redis-server /etc/redis.conf --requirepass $(cat /run/secrets/redis-pwd) \
+                                                --maxmemory 64mb --loglevel verbose "$@"
