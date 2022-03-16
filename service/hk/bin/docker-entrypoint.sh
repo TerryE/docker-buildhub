@@ -24,13 +24,13 @@ chown 0:0           /etc/crontabs/root
 #
 #  -  mysql and sshd are low volume use Docker logging
 
-echo '/var/log/cron/*.log {
-  weekly
-  missingok
-  rotate 8
-  compress
-  notifempty
-}' > /etc/logrotate.d/cron
+echo -e "/var/log/cron/*.log {
+  weekly\n  missingok\n  rotate 8\n  compress\n  notifempty
+}" > /etc/logrotate.d/cron
+
+echo -e "/var/log/sshd/*.log {
+  weekly\n  missingok\n  rotate 8\n  compress\n  notifempty
+}" > /etc/logrotate.d/sshd
 
 mv /etc/logrotate.d/{php-fpm8,php}
 rm -f /etc/logrotate.d/acpid

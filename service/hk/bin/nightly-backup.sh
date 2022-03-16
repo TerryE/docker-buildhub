@@ -30,10 +30,13 @@
 # -  The SQL backups are daily full compressed SQL dumps.  The dumps from the first of the
 #    month are retained.  On the 1st of the month the dump all of the remaining daily
 #    backups prior to the previous month are also culled.
+#
+# Note that the filetree being backyup and the destination /backups folder are both 
+# owned by www-data, so the tar is itself run as www-data. 
 
 [ "$VHOST" == "forum" ] || exit   # backups are only carried out on the live forum
   
-umask 117
+umask 137
 cd /backups
 
 DATE=$(date +%F)
@@ -56,11 +59,10 @@ else                                 # Do daily backup on other days
   cp -p backups/ipb-level2.snar backups/ipb-level2.snar_old
 fi
   
-tar --directory=/var/www --listed-incremental=backups/ipb-level$LEVEL.snar \
+su-exec www-data tar \
+    --directory=/var/www --listed-incremental=backups/ipb-level$LEVEL.snar \
     --create --anchored --exclude ipb/datastore/* \
-    --file=backups/${DATE}-var_www-$TYPE.tar \
-    ipb
-chown www-data:www-data ${DATE}-var_www-$TYPE.tar
+    --file=backups/${DATE}-var_www-$TYPE.tar    ipb
 
 test "$LEVEL" = "1" && cp backups/ipb-level1.snar backups/ipb-level2.snar
 

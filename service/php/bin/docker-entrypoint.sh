@@ -17,6 +17,7 @@ ln -sfT /var/log/{php8,php-fpm}
 
 sed -i '/^disable_functions/s/=.*/=  "exec,system,passthru,popen,proc_open,shell_exec"/
         /^expose_php/s/=.*/= Off/
+        /^memory_limit/s/=.*/= 256M/
         /;html_errors/s/^.*/html_errors = Off/
         /session.cookie_samesite/s/=.*/= On/' /etc/php/php.ini
         

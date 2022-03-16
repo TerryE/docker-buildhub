@@ -15,7 +15,6 @@ services:
       args:
         ALPINE_VERSION: ${ALPINE_VERSION}
     volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
       - ./service/hk/bin:/usr/local/sbin:ro
       - ./service/hk/conf:/usr/local/conf:ro
       - /run/docker-app-callback.pipe:/run/host-callback.pipe
@@ -36,6 +35,7 @@ services:
       - mysql
     restart: on-failure
     volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
       - ./service/httpd/bin:/usr/local/sbin:ro
       - ./service/httpd/conf:/usr/local/conf:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
