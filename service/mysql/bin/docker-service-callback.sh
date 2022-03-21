@@ -14,7 +14,7 @@ case $1 in
     xz /tmp/ipb.sql
     chown www-data:www-data /tmp/ipb.sql.xz
     mv {/tmp/ipb,/backups/sql-backups/$DATE}.sql.xz
-    echo "$(date -u) SQL backup completed in $((t-SECONDS))secs." \
+    echo "$(date -u) SQL backup completed in $((SECONDS-t)) secs." \
        > /proc/1/fd/1 ;;
 
   flushlogs)

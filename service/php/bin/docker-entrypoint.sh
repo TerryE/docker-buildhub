@@ -7,11 +7,12 @@ echo "$(date -u) Entering PHP startup" > /proc/1/fd/1
 
 # Alpine uses php8 as the command root so symlink the corresponding php aliases
 
-for d in /var/log /usr/lib /usr/bin /usr/include /etc; do
-  ln -sT $d/php{8,}
-done
+ln -sT /usr/bin/php{8,}
 ln -sT /usr/sbin/php-fpm{8,}
-ln -sfT /var/log/{php8,php-fpm}
+ln -sT /usr/lib/php{8,}
+ln -sT /usr/include/php{8,}
+ln -sT /etc/php{8,}
+ln -sfT /var/log/php{8,}
 
 #  These are the PHP ini settings that need changing
 
