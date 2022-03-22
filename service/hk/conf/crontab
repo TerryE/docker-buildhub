@@ -9,6 +9,21 @@ SHELL=/bin/sh
 # |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
 # |  |  |  |  |
 # *  *  *  *  *  command to be executed
+#
+# The php task function must be run per minute for IPS backgound tasks to work
+#
   *  *  *  *  *  echo ${VHOST} php task >/run/host-callback.pipe
- 10  2  *  *  *  logrotate /etc/logrotate.conf
+#
+# The logrotate status file must be persistent for logrotate to work correctly.  This
+# is mapped to a hidden status file in /var/log
+#
+  0  2  *  *  *  logrotate -s /var/log/.logrotate.status /etc/logrotate.conf
+#
+# The httpd service must check for new certificates once a week (at a random 01:12
+# just to be nice to the cerbot service).
+#
+  12 1  *  *  0  echo ${VHOST} httpd certbot >/run/host-callback.pipe
+#
+# Backup the www file hierarchy, plus mysql database
+#
   0  4  *  *  *  nightly-backup.sh

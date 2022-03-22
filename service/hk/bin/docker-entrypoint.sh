@@ -48,4 +48,4 @@ echo "$(date -u) Housekeeping config updated: crond started" > /proc/1/fd/1
 # controlled by tini to handle shutdown requests, but append any options
 
 [ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
-exec tini /usr/sbin/crond -f -l 2 -L /var/log/cron/cron.log -c /etc/crontabs "$@"
+exec tini /usr/sbin/crond -f -l 7 -L /var/log/cron/cron.log -c /etc/crontabs "$@"
