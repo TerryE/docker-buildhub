@@ -17,9 +17,6 @@ sed -in '/postrotate/{n;s!/.*!kill  -s USR1  1!}' /etc/logrotate.d/httpd
 
 ln -sfT /usr/lib/apache2 modules
 
-# create certbot HTTP-01 challenge responce directory
-mkdir /var/www/acme; chown www-data:www-data /var/www/acme
-
 # The config binds the VHOSTS to the actual IP, so do a bit of ip majic to get it
 
 export HOST_IP=$(ip addr show dev eth0 | grep inet | cut -b 10- |cut -d / -f 1)

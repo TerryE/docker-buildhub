@@ -30,8 +30,13 @@ RUN \
   SSH='openssh-server openssh-server-pam openssh-sftp-server rsync'; \
   GOODIES='iputils nmap procps tree util-linux xz'; \
   \
-  apk add ${CORE} ${APACHE} ${PHP} ${SSH} ${GOODIES};   # Add the packages \
-  rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*         # Clean up temp & working dirs
+  apk add ${CORE} ${APACHE} ${PHP} ${SSH} ${GOODIES}
+
+# Clean up temp & working dirs, plus unused /var/www directory
+
+RUN \
+  rm -rf /var/www/localhost; \
+  rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/*
 
 # The docker-entrypoint.sh command sets the context to start the tailored service as a
 # docker daemon.  Note that this isn't actually present in the base image as the various
