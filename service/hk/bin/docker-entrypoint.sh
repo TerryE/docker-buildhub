@@ -10,36 +10,12 @@ echo "$(date -u) Entering Housekeeping startup" > /proc/1/fd/1
 cp    conf/crontab  /etc/crontabs/root
 chown 0:0           /etc/crontabs/root
  
-#  -  For simplicity the /var/log directory is shared between all services so all the
-#     log rotation is done as part of housekeeping.  All other services have the log
-#     rotation configs removed.
-#
-#  -  Where the remote service caches the logfile FD, it needs to be notified to flush
-#     logs, and this is done as a postrotate callback to the remote service.
-#
-#  -  The apache2 (httpd), php, and redis packages install log rotate conf file but the
-#     first two need tweaking
-#
-#  -  cron needs a conf file adding
-#
-#  -  mysql and sshd are low volume use Docker logging
+#  For simplicity the /var/log directory is shared between all services so all the
+#  log rotation is done as part of housekeeping, and all config is in the base 
+#  logrotate.conf. All logrotate.d entries are removed to avoid confusion.
 
-echo -e "/var/log/cron/*.log {
-  weekly\n  missingok\n  rotate 8\n  compress\n  notifempty
-}" > /etc/logrotate.d/cron
-
-echo -e "/var/log/sshd/*.log {
-  weekly\n  missingok\n  rotate 8\n  compress\n  notifempty
-}" > /etc/logrotate.d/sshd
-
-mv /etc/logrotate.d/{php-fpm8,php}
-rm -f /etc/logrotate.d/acpid
-sed -i \
-    '/postrotate/{n;s!/.*!echo ${VHOST} php flushlogs >/run/host-callback.pipe!}' \
-    /etc/logrotate.d/php
-sed -i \
-    '/postrotate/{n;s!/.*!echo ${VHOST} httpd flushlogs >/run/host-callback.pipe!}' \
-    /etc/logrotate.d/apache2
+cp conf/logrotate.conf /etc
+rm /etc/logrotate.d/*
 
 echo "$(date -u) Housekeeping config updated: crond started" > /proc/1/fd/1
 #                ==========================================

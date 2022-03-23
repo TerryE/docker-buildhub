@@ -7,7 +7,8 @@
 
 case $1 in
 
-  # Service sshd currently doesn't implement any callback, so this is a placeholder
+  flushlogs)
+    kill  -s USR1  1  ;;
 
   *) ;;
 esac

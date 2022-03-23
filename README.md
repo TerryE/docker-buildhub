@@ -23,7 +23,7 @@ So long as the hosting server has `git` and `docker`  installed, then anyone wit
 *  All running services follow the standard Docker practice of each container presenting a single service that runs as a foreground process (though some execute load-balancing child processes), with the Docker runtime implementing the daemon functionality.
 *  The `mysql` service is based on the official MySQL image because this includes a complex startup logic to handle recovery for unscheduled shutdown, DB upgrades, etc., and so I have kept this very much as 'out of the can'.
 *  The remaining services all use a single shared image based on the official `alpine:3.15` image that is build as part of the `hk` service:
-    *  By installing the relevant Alpine packages to support `php-cli` and `php-fpm` (together with the PHP modules needed to run the [IC Suite), `apache2`(together with the apache2 modules needed to run the website), `certbot`, `crond`, `redis-server` and `sshd`.
+    *  By installing the relevant Alpine packages to support `php-cli` and `php-fpm` (together with the PHP modules needed to run the IC Suite), `apache2`(together with the apache2 modules needed to run the website), `certbot`, `crond`, `redis-server` and `sshd`.
     *  By aligning the `PID` and `GID` allocations for `www-data` to those of the host to simplify UID based access across volumes
 *  The Docker Compose "up" function creates five containers based on this one Alpine image and these are personalised as discussed in the following section to create the `apache2`, `hk`, `php`, `redis` and `sshd` services.
 *  I have adopted a mixed logging strategy:
@@ -52,7 +52,7 @@ All services log startup to Docker.  Most services then switch to `/var/log/<ser
 | ------- | ------- |
 | hk      | Crond events are logged to /var/log/cron/ |
 | httpd   | Logged to `/var/log/apache2`, some errors to Docker. Certbot renewals to  `/var/log/letsencrypt` |
-| mysql   | Logged to `/var/log/mysql` |
+| mysql   | Low volume error reporting, so logged to Docker |
 | php     | Logged to `/var/log/php` |
 | redis   | Logged to `/var/log/redis` |
 | sshd    | Logged to `/var/log/sshd` |

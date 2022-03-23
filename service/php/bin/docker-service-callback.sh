@@ -19,5 +19,9 @@ EOD
     [ -n "$TASK_KEY" ] && \
         php -d memory_limit=-1 -d max_execution_time=0 \
             /var/www/ipb/applications/core/interface/task/task.php $TASK_KEY ;;
+
+  flushlogs)
+    kill  -s USR1  1  ;;
+
   *) ;;
 esac
