@@ -45,6 +45,7 @@ services:
       - "${HTTPS_PORT}:443"
     environment:
       VHOST: ${VHOST}
+      DOMAIN: ${DOMAIN}
       HTTPS_PORT: ${HTTPS_PORT}
       APACHE_LOG_DIR: /var/log/apache2
 
