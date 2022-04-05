@@ -39,38 +39,41 @@
 umask 137
 cd /backups
 
-DATE=$(date +%F)
+tar-backup() {
+  local DATE=$(date +%F)
+  local LEVEL="$1"
+  local TYPE="$2"
+  local SNAR=backups/ipb-level${LEVEL}.snar
+
+  cp -p ${SNAR} ${SNAR}_old
+
+  su-exec www-data tar \
+    --directory=/var/www --listed-incremental=${SNAR} \
+    --create --anchored --exclude ipb/datastore/* \
+    --file=backups/${DATE}-var_www-${TYPE}.tar    ipb
+
+  [ "$LEVEL" = "1" ] && cp backups/ipb-leve{1,2}.snar
+}
+
 
 echo -n "$(date -u) Starting SQL backup" > /proc/1/fd/1
 #                   ===================
 
 # Pass "backup" request to mysql container
-echo ${VHOST} mysql backup >/run/host-callback.pipe
+host-callback.sh mysql backup
 
 # Do the incremental tar of the www hierarchy
-
-if [ "$(date +%d)" = "01" ]; then    # Do monthly backup on 1st of month
-  TYPE="monthly"
-  LEVEL="1"
-  cp -p backups/ipb-level1.snar backups/ipb-level1.snar_old
-else                                 # Do daily backup on other days
-  TYPE="daily"
-  LEVEL="2"
-  cp -p backups/ipb-level2.snar backups/ipb-level2.snar_old
+if [ "$(date +%d)" = "01" ];
+  tar-backup 1 monthly     # Do level 1 monthly backup on 1st of month
+else                           
+  tar-backup 2 daily       # Do level 2 daily backup on other days
 fi
   
-su-exec www-data tar \
-    --directory=/var/www --listed-incremental=backups/ipb-level$LEVEL.snar \
-    --create --anchored --exclude ipb/datastore/* \
-    --file=backups/${DATE}-var_www-$TYPE.tar    ipb
-
-test "$LEVEL" = "1" && cp backups/ipb-level1.snar backups/ipb-level2.snar
-
 echo -n "$(date -u) Finished www backup" > /proc/1/fd/1
 #                   ===================
 
 # Cull any daily backups prior to the previous month.  Calculating this cut-off is
-# a bit convolved Alpine's BusyBox date doesn't do offsets
+# a bit convolved as Alpine's BusyBox date doesn't do offsets
 
 let DD=$(date +%-d)                            # Current day of this month
 let UTS_MM01=$(date -d $(date +%Y-%m-01) +%s)  # Unix time for midnight 1st of month

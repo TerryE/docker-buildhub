@@ -17,7 +17,7 @@ services:
     volumes:
       - ./service/hk/bin:/usr/local/sbin:ro
       - ./service/hk/conf:/usr/local/conf:ro
-      - /run/docker-app-callback.pipe:/run/host-callback.pipe
+      - /run/docker-callback:/run/host-callback
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
       - backups:/backups

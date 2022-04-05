@@ -17,7 +17,7 @@
 # this pipe into the requesting container, e.g.
 #
 #     volumes:
-#       - /var/run/docker-app-callback.pipe:/var/run/host-callback.pipe
+#       - /var/run/docker-callback:/run/host-callback
 #
 
 # Only one copy of this script can be executing: exit if a copy is running:
@@ -25,8 +25,8 @@
 #ps -g docker -C $(basename $0) >/dev/null && exit
 
 trap "sudo rm -f $pipe" EXIT
-
-pipe=/var/run/docker-app-callback.pipe
+mkdir -p /run/docker-callback
+pipe=/run/docker-callback/app.pipe
 [[ -p $pipe ]] || (sudo mkfifo -m 660 $pipe; sudo chown root:docker $pipe )
 
 declare app service args
