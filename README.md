@@ -1,6 +1,6 @@
 ## Background
 
-The scope of this project is a special interest forum that uses [Invision Community (IC)](https://invisioommunity.com/) as its forum engine.  The forum is hosted on a bare / self-managed virtual server (VS) that we've rehosted a few times over the years to accommodate forum growth and to use a supported service stack.  The current 6-core VS with SSD storage costs less than the 2-core + HDD VS that we initially commissioned 6 years ago, and is also significantly less than that of using a managed IC service.
+The scope of this project is a special interest forum that uses [Invision Community (IC)](https://invisioncommunity.com/) as its forum engine.  The forum is hosted on a bare / self-managed virtual server (VS) that we've rehosted a few times over the years to accommodate forum growth and to use a supported service stack.  The current 6-core VS with SSD storage costs less than the 2-core + HDD VS that we initially commissioned 6 years ago, and is also significantly less than that of using a managed IC service.
 
 I have provided pro-bono SysAdmin and developer contributions to various not-for-profit sites and open-source projects over the years.  However, I am now retired and am winding down these activities, so longer term sysAdmin continuity for this forum is a concern. I therefore decided to move to using a GitHub registered Docker stack for the new Ubuntu 20.04-LTS VS server both to simplify migration, and to bring its configuration under tight configuration control.
 
