@@ -37,7 +37,7 @@ while true; do
   status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
   if [ "$status" == "running" ]; then
     echo "$(date -u) $app $service $args" >> /var/log/docker-callback.log
-    docker exec ${app}_${service} docker-service-callback.sh ${args}
+    docker exec ${app}_${service} docker-service-callback.sh ${args} &
   fi
 
 done

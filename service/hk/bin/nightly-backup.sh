@@ -36,7 +36,7 @@
 
 [ "$VHOST" == "forum" ] || exit   # backups are only carried out on the live forum
   
-umask 137
+umask 0007
 cd /backups
 
 tar-backup() {
@@ -52,7 +52,7 @@ tar-backup() {
     --create --anchored --exclude ipb/datastore/* \
     --file=backups/${DATE}-var_www-${TYPE}.tar    ipb
 
-  [ "$LEVEL" = "1" ] && cp backups/ipb-leve{1,2}.snar
+  [ "$LEVEL" = "1" ] && cp -p  backups/ipb-level{1,2}.snar
 }
 
 
@@ -63,7 +63,7 @@ echo -n "$(date -u) Starting SQL backup" > /proc/1/fd/1
 host-callback.sh mysql backup
 
 # Do the incremental tar of the www hierarchy
-if [ "$(date +%d)" = "01" ];
+if [ "$(date +%d)" = "01" ]; then
   tar-backup 1 monthly     # Do level 1 monthly backup on 1st of month
 else                           
   tar-backup 2 daily       # Do level 2 daily backup on other days

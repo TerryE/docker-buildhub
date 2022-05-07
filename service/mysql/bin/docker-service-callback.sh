@@ -9,7 +9,7 @@ case $1 in
   backup)
     ((t = SECONDS))
     DATE=$(date "+%F")
-    umask 137
+    umask 0007
     mysqldump --opt ipb > /tmp/ipb.sql
     xz /tmp/ipb.sql
     chown www-data:www-data /tmp/ipb.sql.xz
