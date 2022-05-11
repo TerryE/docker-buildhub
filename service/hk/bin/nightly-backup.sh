@@ -1,4 +1,4 @@
-  #! /bin/bash
+#! /bin/bash
 #
 # Backup the IPS system to ~forum/backups
 #
@@ -38,6 +38,8 @@
   
 umask 0007
 cd /backups
+
+exec 2>/proc/1/fd/2  # log errors to docker logs
 
 tar-backup() {
   local DATE=$(date +%F)
