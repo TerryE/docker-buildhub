@@ -2,17 +2,15 @@
 
 echo "$(date -u) Entering PHP startup" > /proc/1/fd/1
 #                ====================
-
-[ -d /var/log/php8 ] || mkdir /var/log/php8 # Make log dir if needed
+PHPVER=${PHP_VERSION#php}
+ln -sfT /var/log/php{$PHPVER,}
+[ -d /var/log/php$PHPVER ] || mkdir /var/log/php$PHPVER # Make log dir if needed
 
 # Alpine uses php8 as the command root so symlink the corresponding php aliases
 
-ln -sT /usr/bin/php{8,}
-ln -sT /usr/sbin/php-fpm{8,}
-ln -sT /usr/lib/php{8,}
-ln -sT /usr/include/php{8,}
-ln -sT /etc/php{8,}
-ln -sfT /var/log/php{8,}
+for d in /usr/bin /usr/lib /usr/include /etc; do ln -sT $d/php{$PHPVER,}; done 
+ln -sfT /usr/sbin/php-fpm{$PHPVER,}
+ln -sfT /var/log/php{$PHPVER,}
 
 #  These are the PHP ini settings that need changing
 

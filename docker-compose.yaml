@@ -14,10 +14,11 @@ services:
       dockerfile: hk/Dockerfile
       args:
         ALPINE_VERSION: ${ALPINE_VERSION}
+        PHP_VERSION: ${PHP_VERSION}
     volumes:
       - ./service/hk/bin:/usr/local/sbin:ro
       - ./service/hk/conf:/usr/local/conf:ro
-      - /run/docker-callback:/run/host-callback
+      - ${CALL_BACK_DIR}:/run/host-callback
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
       - backups:/backups
@@ -35,9 +36,9 @@ services:
       - mysql
     restart: on-failure
     volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
       - ./service/httpd/bin:/usr/local/sbin:ro
       - ./service/httpd/conf:/usr/local/conf:ro
+      - ${SSH_CERT_DIR}:/etc/letsencrypt:ro
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
@@ -65,6 +66,7 @@ services:
       - var_log:/var/log
     environment:
       VHOST: ${VHOST}
+      PHP_VERSION: ${PHP_VERSION}
 
   redis:
     image: alpine:${ALPINE_VERSION}-extended

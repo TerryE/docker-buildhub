@@ -22,7 +22,7 @@ So long as the hosting server has `git` and `docker`  installed, then anyone wit
 *  Docker's own official MySQL and Alpine images are used as a basis.
 *  All running services follow the standard Docker practice of each container presenting a single service that runs as a foreground process (though some execute load-balancing child processes), with the Docker runtime implementing the daemon functionality.
 *  The `mysql` service is based on the official MySQL image because this includes a complex startup logic to handle recovery for unscheduled shutdown, DB upgrades, etc., and so I have kept this very much as 'out of the can'.
-*  The remaining services all use a single shared image based on the official `alpine:3.15` image that is build as part of the `hk` service:
+*  The remaining services all use a single shared image based on the official `alpine:3.16` image that is build as part of the `hk` service:
     *  By installing the relevant Alpine packages to support `php-cli` and `php-fpm` (together with the PHP modules needed to run the IC Suite), `apache2`(together with the apache2 modules needed to run the website), `certbot`, `crond`, `redis-server` and `sshd`.
     *  By aligning the `PID` and `GID` allocations for `www-data` to those of the host to simplify UID based access across volumes
 *  The Docker Compose "up" function creates five containers based on this one Alpine image and these are personalised as discussed in the following section to create the `apache2`, `hk`, `php`, `redis` and `sshd` services.
@@ -30,7 +30,7 @@ So long as the hosting server has `git` and `docker`  installed, then anyone wit
     *  High volume informational logs (such as the Apache2 access logs) are written to a persistent shared `/var/log` volume (as these are only occasionally mined for hacking forensics), with standard Linux log rotation.
     *  Genuine errors are passed to the Docker logging system.
 *   The `sshd` service is mounted onto port 2222 and offers a single user `backups` with `/backups` as the home directory. This user is in group `www-data` and has group read access to the forum backups volume.  The purpose of this service is to allow authorised users (who are not sysAmins) public key read-only access to the backup folders for off-site duplication).
-*  Timed events (such as backup and log rotation) are orchestrated by a `crontab` in the dedicated housekeeping `hk` service. See the files `docker-callback-reader` and `docker-callback-reader.service` in the `service` subdirectory for how this is implemented.
+*  Timed events (such as backup and log rotation) are orchestrated by a `crontab` in the dedicated housekeeping `hk` service. See the file `bin/docker-callback-reader`for how this is implemented.
 *  The Docker application presents a minimal security surface.  Hence inter-container communication is carried out over an internal network and only the HTTP, HTTPS and backup SSH ports are exposed to the host.
 
 ## Customising the Service Context

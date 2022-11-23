@@ -1,7 +1,7 @@
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
 
-#ARG HOST_USER
+ARG PHP_VERSION
 #ENV HOST_USER ${HOST_USER}
 
 # Swap www-data:www-data to the Debian standard 33:33
@@ -26,10 +26,9 @@ RUN \
   APACHE='apache2 apache2-ssl apache2-proxy'; \
   PHP_MODS='fpm bcmath curl ctype dom exif fileinfo gd gmp imap mbstring mysqli \
       openssl phar redis session simplexml sodium xml xmlreader xmlwriter opcache zip'; \
-  PHP=$(echo php8; for m in ${PHP_MODS}; do echo -n " php8-${m}"; done); \
+  PHP=$(echo ${PHP_VERSION}; for m in ${PHP_MODS}; do echo -n " ${PHP_VERSION}-${m}"; done); \
   SSH='openssh-server openssh-server-pam openssh-sftp-server rsync'; \
   GOODIES='iputils nmap procps tree util-linux xz'; \
-  \
   apk add ${CORE} ${APACHE} ${PHP} ${SSH} ${GOODIES}
 
 # Clean up temp & working dirs, plus unused /var/www directory
