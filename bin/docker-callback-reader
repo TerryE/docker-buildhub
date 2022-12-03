@@ -19,33 +19,25 @@
 #     volumes:
 #       - ${CALL_BACK_DIR}:/run/host-callback
 #
-# Exit if this script is already running. pgrep is used to do this but note that 
-# the cron deamon wraps the crontab line in a process that embeds $0 hence the 
-# check for the bare $0+EOL
+# Attempt to lock the LOGFILE. Exit the script if already locked and running.
 #
-echo "Restarting at $(date)"
+LOGFILE=/tmp/$(basename $0).log
+(
+    flock -n 1 || exit 1
+    echo "$(date -Iseconds) Entering Poll on Application Pipe"
+    cd $(dirname $(dirname $(realpath $0)))
+    . .env  # Execute env context to get CALL_BACK_DIR
+    PIPE=${CALL_BACK_DIR}/call-back.pipe
+    trap "sudo rm -f $PIPE; flock -u 1" EXIT
+    [[ -p $PIPE ]] || ( sudo mkfifo -m 660 $PIPE; sudo chown $USER:docker $PIPE )
 
-[[ $(pgrep -c -u $USER -f "$0\$") -gt 1 ]]  && exit
-
-echo "Entering Poll on Application Pipe"
-
-cd $(dirname $(dirname $(realpath $0)))
-. .env
-
-PIPE=${CALL_BACK_DIR}/call-back.pipe
-trap "sudo rm -f $PIPE" EXIT
-
-[[ -p $PIPE ]] || ( sudo mkfifo -m 660 $PIPE; sudo chown $USER:docker $PIPE )
-
-declare app service args
-
-while true; do
-
-  read app service args < $PIPE
-  status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
-  if [ "$status" == "running" ]; then
-    docker exec ${app}_${service} docker-service-callback.sh ${args} &
-  fi
-done
-
-exit
+    declare app service args
+    while true; do
+      read app service args < $PIPE
+      status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
+      if [ "$status" == "running" ]; then
+	echo "$(date -Iseconds) ${app}_${service} ${args}"
+        docker exec ${app}_${service} docker-service-callback.sh ${args} &
+      fi
+    done
+) >> $LOGFILE 2>&1
