@@ -22,8 +22,9 @@
 # Attempt to lock the LOGFILE. Exit the script if already locked and running.
 #
 LOGFILE=/tmp/$(basename $0).log
+LOCKFILE=/tmp/$(basename $0).lock
 (
-    flock -n 1 || exit 1
+    flock -n 10 || exit 1
     echo "$(date -Iseconds) Entering Poll on Application Pipe"
     cd $(dirname $(dirname $(realpath $0)))
     . .env  # Execute env context to get CALL_BACK_DIR
@@ -37,7 +38,7 @@ LOGFILE=/tmp/$(basename $0).log
       status=$(docker inspect -f '{{.State.Status}}' ${app}_${service} 2>/dev/null)
       if [ "$status" == "running" ]; then
 	echo "$(date -Iseconds) ${app}_${service} ${args}"
-        docker exec ${app}_${service} docker-service-callback.sh ${args} &
+        docker exec -d ${app}_${service} docker-service-callback.sh ${args}
       fi
     done
-) >> $LOGFILE 2>&1
+) >> $LOGFILE 2>&1 10>$LOCKFILE

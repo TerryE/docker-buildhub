@@ -6,7 +6,8 @@
 [ -f /usr/local/sbin/service-$1 ] && exec /usr/local/sbin/service-$1 "$@"
 
 case $1 in
-  task)
+  task)  (
+    flock -n 100 || exit 1
     TASK_KEY=$(cd /var/www/ipb; php <<-'EOD' 2>/dev/null
 <?php
       require 'conf_global.php'; extract($INFO);
@@ -18,7 +19,8 @@ EOD
     )
     [ -n "$TASK_KEY" ] && \
         php -d memory_limit=-1 -d max_execution_time=0 \
-            /var/www/ipb/applications/core/interface/task/task.php $TASK_KEY ;;
+            /var/www/ipb/applications/core/interface/task/task.php $TASK_KEY
+  )  100>>/tmp/service-callback.lock  ;;
 
   flushlogs)
     kill  -s USR1  1  ;;
