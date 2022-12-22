@@ -38,7 +38,7 @@ services:
     volumes:
       - ./service/httpd/bin:/usr/local/sbin:ro
       - ./service/httpd/conf:/usr/local/conf:ro
-      - ${SSH_CERT_DIR}:/etc/letsencrypt:ro
+      - ${SSH_CERT_DIR}:/etc/letsencrypt
       - ${WWW_IPB_ROOT}:/var/www/ipb
       - var_log:/var/log
     ports:
