@@ -16,11 +16,13 @@ case $1 in
 
     OLDCERT=$(find /etc/letsencrypt/live/forum.${DOMAIN}/fullchain.pem -mtime +61)
     if [ -n "$OLDCERT" ]; then
-      echo "$(date -u) Checking / Renewing *.${DOMAIN} certificates" > /proc/1/fd/1
-      mkdir /var/www/acme; chown www-data:www-data /var/www/acme
-      certbot certonly -n -d forum.${DOMAIN},www.${DOMAIN},test.${DOMAIN} \
-                       --webroot -w /var/www/acme > /proc/1/fd/1  2>&1
-      rm -rf /var/www/acme
+      (
+        echo "$(date -u) Checking / Renewing *.${DOMAIN} certificates"
+        mkdir /var/www/acme; chown www-data:www-data /var/www/acme
+        certbot certonly -n -d forum.${DOMAIN},www.${DOMAIN},test.${DOMAIN} \
+                         --webroot -w /var/www/acme
+        rm -rf /var/www/acme
+      ) > /proc/1/fd/1  2> /proc/1/fd/2
     else
       echo "$(date -u) Skipping certificate renewal" > /proc/1/fd/1
     fi  ;;
