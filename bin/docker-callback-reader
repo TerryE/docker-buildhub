@@ -25,12 +25,18 @@ LOGFILE=/tmp/$(basename $0).log
 LOCKFILE=/tmp/$(basename $0).lock
 (
     flock -n 10 || exit 1
+
     echo "$(date -Iseconds) Entering Poll on Application Pipe"
     cd $(dirname $(dirname $(realpath $0)))
     . .env  # Execute env context to get CALL_BACK_DIR
     PIPE=${CALL_BACK_DIR}/call-back.pipe
     trap "sudo rm -f $PIPE; flock -u 1" EXIT
     [[ -p $PIPE ]] || ( sudo mkfifo -m 660 $PIPE; sudo chown $USER:docker $PIPE )
+
+    # If the prod has stalled because the pipe hasn't been created then bounce the project
+    sleep 1
+    docker ps --format '{{.Names}}' | grep -q forum_php || 
+         docker-compose -p prod -f ~/prod/docker-compose.yaml --env-file ~/prod/.env up --force-recreate -d
 
     declare app service args
     while true; do
