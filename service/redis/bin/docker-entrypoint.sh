@@ -1,37 +1,29 @@
 #! /bin/bash
+function entry_setup() {
+    set -eax
+    mkdir -p /var/log/redis; chown redis:redis /var/log/redis
+    mkdir -p /var/run/redis; chown redis:redis /var/run/redis
 
-echo "$(date -u) Entering Redis startup" > /proc/1/fd/1
-#                ======================
+    #  These are the Redis conf settings that need changing
 
-[ -d /var/log/redis ] || mkdir  # Make log dir if needed
-chown redis /var/log/redis
+    HOST_IP=$(ip addr show dev eth0 | grep inet | cut -b 10- |cut -d / -f 1)
+    PASSWD=$(cat /run/secrets/redis-pwd) 
+    sed -i "/^bind /s/.*/bind ${HOST_IP}/
+            /loglevel /s/.*/loglevel notice/
+            /syslog-enabled /s/.*/syslog-enabled no/
+            /databases /s/.*/databases 4/
+            /^\(# \)\{0,1\}requirepass /s/.*/requirepass $PASSWD/
+            /^\(# \)\{0,1\}unixsocket /s/.*/unixsocket \/run\/redis\/redis-server.sock/
+            /^\(# \)\{0,1\}unixsocketperm /s/.*/unixsocketperm 770/
+            /^\(# \)\{0,1\}maxmemory /s/.*/maxmemory 64mb/
+            /^\(# \)\{0,1\}maxmemory-policy /s/.*/maxmemory-policy allkeys-lru/" /etc/redis/redis.conf
 
-#  These are the Redis conf settings that need changing
+    cd /var/lib/redis
+    find . \! -user redis -exec chown redis '{}' +
+}
 
-export HOST_IP=$(ip addr show dev eth0 | grep inet | cut -b 10- |cut -d / -f 1)
-sed -i "/^bind /s/.*/bind ${HOST_IP}/
-        /loglevel /s/.*/loglevel notice/
-        /syslog-enabled /s/.*/syslog-enabled no/
-	/databases /s/.*/databases 4/
-        /^# maxmemory /s/.*/maxmemory 8mb/
-        /^# maxmemory-policy /s/.*/maxmemory-policy allkeys-lru/" /etc/redis.conf
-
-# The logrotate callback only needs to rotates the logs for Redis, so drop rest.  Note
-# that Redis doesn't cache the logfile open, so no need for a graceful reload
-
-rm $(find /etc/logrotate.d/* -not -name $HOSTNAME)
-
-# set context to redis lib and make sure al
-
-cd /var/lib/redis
-find . \! -user redis -exec chown redis '{}' +
-
-
-echo "$(date -u) Redis startup: starting Redis service" > /proc/1/fd/1
-#                =====================================
-
-# if the first arg is not an option then exec it, otherwise append as options
-  
-[ -n "$1" ] && [ "${1#-}" == "$1" ] && exec "$@"
-exec su-exec redis redis-server /etc/redis.conf --requirepass $(cat /run/secrets/redis-pwd) \
-                                                --maxmemory 64mb "$@"
+echo "$(date -u) Entering $SERVICE startup" > /proc/1/fd/1
+entry_setup
+echo "$(date -u) Initiating $SERVICE with redis owndership" > /proc/1/fd/1
+#exec setpriv --reuid=redis --regid=redis --init-groups redis-server /etc/redis/redis.conf
+sleep 3600

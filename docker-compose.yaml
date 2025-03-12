@@ -1,46 +1,83 @@
-version: "3.7"
-
 services:
 
-  # hk, httpd, php, redis, sshd all use the same image that is build in service hk target
+  # All containers use the same image that is based in a standard Debian slim image
+  # that has been extended to include the packages needed for all service.
+  #
+  # Some directories are routinely accessed by the admins and these are bound to the
+  # relevant host directory, including ${IPB_ROOT}, /backups and data/log.
+  #
+  # All containers bind service/<service>/bin to /usr/local/sbin and this directoy must
+  # contain the script docker-entrypoint.sh which is used to startup the container.
+  # Each container can also binds to /usr/local/conf, if needed.
+  #
+  # The mysql data directories is mounted as a persistent docker volumes.
   
-  hk:
-    image: alpine:${ALPINE_VERSION}-extended
-    hostname: hk
-    container_name: ${VHOST}_hk
-    domainname: buildhub.local
+  # MariaDB service
+  mysql:
+    image: debian:${DEBIAN_VERSION}-extended
+    hostname: mysql
+    container_name: ${VHOST}_mysql
+    # this doesn't depend on other services, so it is used to build the debian image.
     build:
-      context: ./service
-      dockerfile: hk/Dockerfile
+      context: .
+      dockerfile_inline: |
+        ARG DEBIAN_VERSION
+        FROM debian:${DEBIAN_VERSION}
+        WORKDIR /usr/local
+        RUN --mount=type=bind,source=./.env,target=/tmp/.env \
+            --mount=type=bind,source=./bin/build-image.sh,target=/tmp/build-image.sh \
+            /tmp/build-image.sh
+        ENTRYPOINT ["/usr/local/sbin/docker-entrypoint.sh"]
       args:
-        ALPINE_VERSION: ${ALPINE_VERSION}
-        PHP_VERSION: ${PHP_VERSION}
+        DEBIAN_VERSION: ${DEBIAN_VERSION}
+    # restart: on-failure
     volumes:
-      - ./service/hk/bin:/usr/local/sbin:ro
-      - ./service/hk/conf:/usr/local/conf:ro
-      - ${CALL_BACK_DIR}:/run/host-callback
-      - ${WWW_IPB_ROOT}:/var/www/ipb
-      - var_log:/var/log
-      - backups:/backups
-    restart: on-failure
+      - ./service/mysql/bin:/usr/local/sbin:ro
+      - ./service/mysql/conf:/usr/local/conf:ro
+      - mysql_data:/var/lib/mysql
+      - ./data/log:/var/log
+      - ./data/run:/run
+      - /backups:/backups
+    environment:
+      MARIADB_DATABASE: ${MYSQL_DATABASE}
+      TZ: ${TZ}
+      VHOST: ${VHOST}
+    security_opt:
+      - seccomp:unconfined
+
+  # PHP FPM Service
+  php:
+    image: debian:${DEBIAN_VERSION}-extended
+    hostname: php
+    container_name: ${VHOST}_php
+    depends_on:
+      - mysql
+    # restart: on-failure
+    volumes:
+      - ./service/php/bin:/usr/local/sbin:ro
+      - ./service/php/conf:/usr/local/conf:ro
+      - ${IPB_ROOT}:/var/www/ipb
+      - ./data/log:/var/log
+      - ./data/run:/run
     environment:
       VHOST: ${VHOST}
+      PHP_VERSION: ${PHP_VERSION}
 
+  # Apache2.4 Service
   httpd:
-    image: alpine:${ALPINE_VERSION}-extended
+    image: debian:${DEBIAN_VERSION}-extended
     hostname: httpd
     container_name: ${VHOST}_httpd
     depends_on:
-      - hk
       - php
-      - mysql
-    restart: on-failure
+    # restart: on-failure
     volumes:
       - ./service/httpd/bin:/usr/local/sbin:ro
       - ./service/httpd/conf:/usr/local/conf:ro
-      - ${SSH_CERT_DIR}:/etc/letsencrypt
-      - ${WWW_IPB_ROOT}:/var/www/ipb
-      - var_log:/var/log
+      - ${IPB_ROOT}:/var/www/ipb
+      - ./data//etc/letsencrypt:/etc/letsencrypt
+      - ./data/log:/var/log
+      - ./data/run:/run
     ports:
       - "${HTTP_PORT}:80"
       - "${HTTPS_PORT}:443"
@@ -49,102 +86,73 @@ services:
       DOMAIN: ${DOMAIN}
       HTTPS_PORT: ${HTTPS_PORT}
       APACHE_LOG_DIR: /var/log/apache2
-
-  php:
-    image: alpine:${ALPINE_VERSION}-extended
-    hostname: php
-    container_name: ${VHOST}_php
-    depends_on:
-      - hk
-      - mysql
-      - redis
-    restart: on-failure
-    volumes:
-      - ./service/php/bin:/usr/local/sbin:ro
-      - ./service/php/conf:/usr/local/conf:ro
-      - ${WWW_IPB_ROOT}:/var/www/ipb
-      - var_log:/var/log
-    environment:
-      VHOST: ${VHOST}
       PHP_VERSION: ${PHP_VERSION}
 
-  redis:
-    image: alpine:${ALPINE_VERSION}-extended
-    hostname: redis
-    container_name: ${VHOST}_redis
+  # Cron Service used to schedule event-based housekeeping
+  crond:
+    image: debian:${DEBIAN_VERSION}-extended
+    hostname: crond
+    container_name: ${VHOST}_crond
+    domainname: buildhub.local
     depends_on:
-      - hk
-    restart: on-failure
+      - httpd
+      - mysql
     volumes:
-      - ./service/redis/bin:/usr/local/sbin:ro
-      - redis_data:/var/lib/redis
-      - var_log:/var/log
-    secrets:
-      - redis-pwd
-
-  mysql:
-    image: mysql:${MYSQL_VERSION}-extended
-    hostname: mysql
-    container_name: ${VHOST}_mysql
-    build:
-      context: ./service
-      dockerfile: mysql/Dockerfile
-      args:
-        MYSQL_VERSION: ${MYSQL_VERSION}
-    restart: on-failure
-    volumes:
-      - ./service/mysql/bin:/usr/local/sbin:ro
-      - ./service/mysql/conf:/usr/local/etc:ro
-      - mysql_data:/var/lib/mysql
-      - var_log:/var/log
-      - backups:/backups
+      - ./service/crond/bin:/usr/local/sbin:ro
+      - ./service/crond/conf:/usr/local/conf:ro
+      - ${IPB_ROOT}:/var/www/ipb
+      - ./data/log:/var/log
+      - ./data/run:/run
+      - /backups:/backups
+      - ./data/run:/run
+    # restart: on-failure
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      TZ: ${TZ}
       VHOST: ${VHOST}
-    secrets:
-      - mysql-root
-    security_opt:
-      - seccomp:unconfined
 
+  # SSHD Service for off-siting of system backups
   sshd:
-    image: alpine:${ALPINE_VERSION}-extended
+    image: debian:${DEBIAN_VERSION}-extended
     hostname: sshd
     container_name: ${VHOST}_sshd
     depends_on:
-      - hk
-    restart: on-failure
+      - mysql
+    # restart: on-failure
     volumes:
       - ./service/sshd/bin:/usr/local/sbin:ro
       - /etc/ssh:/usr/local/conf:ro
-      - var_log:/var/log
-      - backups:/backups
+      - ./data/log:/var/log
+      - /backups:/backups
     ports:
       - "${SSH_PORT}:22"
     environment:
       VHOST: ${VHOST}
     secrets:
       - authorized_keys
+  redis:
+    image: debian:${DEBIAN_VERSION}-extended
+    hostname: redis
+    container_name: ${VHOST}_redis
+    depends_on:
+      - mysql
+    # restart: on-failure
+    volumes:
+      - ./service/redis/bin:/usr/local/sbin:ro
+      - redis_data:/var/lib/redis
+      - ./data/log:/var/log
+      - ./data/run:/run
+    secrets:
+      - redis-pwd
 
 secrets:
   authorized_keys:
     file: .secrets/authorized_keys
-  mysql-root:
-    file: .secrets/mysql-root
   redis-pwd:
     file: .secrets/redis-pwd
 
 volumes:
   mysql_data:
-    external:
-      name: ${DBHOST}_mysql_data
-  var_log:
-    external:
-      name: ${VHOST}_var_log
-  backups:
-    external:
-      name: ${VHOST}_backups
+    external: true
+    name: ${VHOST}_mysql_data
   redis_data:
-    external:
-      name: ${VHOST}_redis_data
+    external: true
+    name: ${VHOST}_redis_data

@@ -2,6 +2,9 @@
 #  Tweaks to default MySQL paramaters to allocate 2Gb to InnoDB etc.
 #
 [mysqld]
+host_cache_size               = 0
+skip-name-resolve
+
 back_log                      = 50
 
 max_allowed_packet            = 16M
@@ -14,7 +17,7 @@ myisam-recover-options        = BACKUP
 myisam_sort_buffer_size       = 64M
 key_buffer_size               = 16M
 
-table_open_cache              = 2048
+table_open_cache              = 1024
 
 innodb_buffer_pool_instances  = 8
 innodb_buffer_pool_size       = 2G
