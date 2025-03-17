@@ -20,19 +20,12 @@ services:
     # this doesn't depend on other services, so it is used to build the debian image.
     build:
       context: .
-      dockerfile_inline: |
-        ARG DEBIAN_VERSION
-        FROM debian:${DEBIAN_VERSION}
-        WORKDIR /usr/local
-        RUN --mount=type=bind,source=./.env,target=/tmp/.env \
-            --mount=type=bind,source=./bin/build-image.sh,target=/tmp/build-image.sh \
-            /tmp/build-image.sh
-        ENTRYPOINT ["/usr/local/sbin/docker-entrypoint.sh"]
+      dockerfile: Dockerfile
       args:
         DEBIAN_VERSION: ${DEBIAN_VERSION}
     # restart: on-failure
     volumes:
-      - ./service/mysql/bin:/usr/local/sbin:ro
+      - ./service/mysql/bin:/usr/local/bin:to
       - ./service/mysql/conf:/usr/local/conf:ro
       - mysql_data:/var/lib/mysql
       - ./data/log:/var/log
@@ -54,7 +47,7 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/php/bin:/usr/local/sbin:ro
+      - ./service/php/bin:/usr/local/bin:to
       - ./service/php/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/log:/var/log
@@ -64,16 +57,16 @@ services:
       PHP_VERSION: ${PHP_VERSION}
 
   # Apache2.4 Service
-  httpd:
+  apache2:
     image: debian:${DEBIAN_VERSION}-extended
-    hostname: httpd
-    container_name: ${VHOST}_httpd
+    hostname: apache2
+    container_name: ${VHOST}_apache2
     depends_on:
       - php
     # restart: on-failure
     volumes:
-      - ./service/httpd/bin:/usr/local/sbin:ro
-      - ./service/httpd/conf:/usr/local/conf:ro
+      - ./service/apache2/bin:/usr/local/bin:to
+      - ./service/apache2/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data//etc/letsencrypt:/etc/letsencrypt
       - ./data/log:/var/log
@@ -89,22 +82,21 @@ services:
       PHP_VERSION: ${PHP_VERSION}
 
   # Cron Service used to schedule event-based housekeeping
-  crond:
+  scheduler:
     image: debian:${DEBIAN_VERSION}-extended
-    hostname: crond
-    container_name: ${VHOST}_crond
+    hostname: scheduler
+    container_name: ${VHOST}_scheduler
     domainname: buildhub.local
     depends_on:
-      - httpd
+      - apache2
       - mysql
     volumes:
-      - ./service/crond/bin:/usr/local/sbin:ro
-      - ./service/crond/conf:/usr/local/conf:ro
+      - ./service/scheduler/bin:/usr/local/bin:to
+      - ./service/scheduler/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/log:/var/log
       - ./data/run:/run
       - /backups:/backups
-      - ./data/run:/run
     # restart: on-failure
     environment:
       VHOST: ${VHOST}
@@ -118,10 +110,11 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/sshd/bin:/usr/local/sbin:ro
+      - ./service/sshd/bin:/usr/local/bin:to
       - /etc/ssh:/usr/local/conf:ro
-      - ./data/log:/var/log
       - /backups:/backups
+      - ./data/log:/var/log
+      - ./data/run:/run
     ports:
       - "${SSH_PORT}:22"
     environment:
@@ -136,7 +129,7 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/redis/bin:/usr/local/sbin:ro
+      - ./service/redis/bin:/usr/local/bin:to
       - redis_data:/var/lib/redis
       - ./data/log:/var/log
       - ./data/run:/run
