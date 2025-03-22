@@ -25,14 +25,14 @@ services:
         DEBIAN_VERSION: ${DEBIAN_VERSION}
     # restart: on-failure
     volumes:
-      - ./service/mysql/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/mysql/bin:/usr/local/bin:ro
       - ./service/mysql/conf:/usr/local/conf:ro
       - mysql_data:/var/lib/mysql
       - ./data/log:/var/log
       - ./data/run:/run
       - /backups:/backups
     environment:
-      MARIADB_DATABASE: ${MYSQL_DATABASE}
       TZ: ${TZ}
       VHOST: ${VHOST}
     security_opt:
@@ -47,11 +47,15 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/php/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/php/bin:/usr/local/bin:ro
       - ./service/php/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/log:/var/log
       - ./data/run:/run
+    secrets:
+      - forum-token
+      - redis-pwd
     environment:
       VHOST: ${VHOST}
       PHP_VERSION: ${PHP_VERSION}
@@ -65,10 +69,11 @@ services:
       - php
     # restart: on-failure
     volumes:
-      - ./service/apache2/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/apache2/bin:/usr/local/bin:ro
       - ./service/apache2/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
-      - ./data//etc/letsencrypt:/etc/letsencrypt
+      - ./data/etc/letsencrypt:/etc/letsencrypt
       - ./data/log:/var/log
       - ./data/run:/run
     ports:
@@ -91,11 +96,13 @@ services:
       - apache2
       - mysql
     volumes:
-      - ./service/scheduler/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/scheduler/bin:/usr/local/bin:ro
       - ./service/scheduler/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/log:/var/log
       - ./data/run:/run
+      - /run/docker.sock:/run/docker.sock
       - /backups:/backups
     # restart: on-failure
     environment:
@@ -110,7 +117,8 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/sshd/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/sshd/bin:/usr/local/bin:ro
       - /etc/ssh:/usr/local/conf:ro
       - /backups:/backups
       - ./data/log:/var/log
@@ -121,6 +129,7 @@ services:
       VHOST: ${VHOST}
     secrets:
       - authorized_keys
+
   redis:
     image: debian:${DEBIAN_VERSION}-extended
     hostname: redis
@@ -129,7 +138,8 @@ services:
       - mysql
     # restart: on-failure
     volumes:
-      - ./service/redis/bin:/usr/local/bin:to
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./service/redis/bin:/usr/local/bin:ro
       - redis_data:/var/lib/redis
       - ./data/log:/var/log
       - ./data/run:/run
@@ -141,6 +151,8 @@ secrets:
     file: .secrets/authorized_keys
   redis-pwd:
     file: .secrets/redis-pwd
+  forum-token:
+    file: .secrets/forum-token
 
 volumes:
   mysql_data:

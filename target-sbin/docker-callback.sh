@@ -17,51 +17,53 @@ function setupErrorHandling {
 function runCB {
     # #runCB someAction will run the function CB_someAction if it has been defined
     #  in the docker-callback-function.sh sourced next
-    local _v=_$1; local -F $_v &>/dev/null || logError "No action '$ACTION' defined";
+    local ACTION="$2"
+    local _v="CB_$1"; local -F $_v &>/dev/null || logError "No action '$ACTION' defined";
     shift; $_v $*
 }
 
-source /usr/bin/local/docker-callback-functions.sh
-
 # Generate the logrotate conf file for this container
 
-function lotateLogs {
+function rotateLogs {
     #
     # Pretty much all services that log to /var/log are handled the same hence the long COMMON
     # set. Most services play nicely and accept a USR1 signal to flush and rotate logs,  The easiest
     # way doing this is to signal tini (PID 1) and this forwards it.  redis-server is the exception
     #
-    COMMON='weekly:rotate 4:create:compress:missingok:notifempty:delaycompress:sharedscripts:minsize 1M"
+    COMMON='weekly:rotate 4:create:compress:missingok:notifempty:delaycompress:sharedscripts:minsize 1M'
     FLUSH='postrotate:kill -USR1 1:endscript'
     local -A logMap=(
-      [apache2]='maxsize 50M:FLUSH',
-      [mysql]='maxsize 5M:FLUSH',
-      [php]='maxsize 5M:FLUSH',
+      [apache2]='maxsize 50M:FLUSH'
+      [mysql]='maxsize 5M:FLUSH'
+      [php]='maxsize 5M:FLUSH'
       [redis]='monthly')
 
-    HOST=$(hostname)`
-    RULES=${logMap[$HOST]}
-
+    HOST=$(hostname)
+    RULES="${logMap[$HOST]}"
     [[ -z $RULES ]] && return 1  # Don't rotate if there is no logMap entry
-    echo "${COMMON}:/var/log/$HOST/*.log{${RULES/%FLUSH/$FLUSH}}" | sed 's/:/\n/g' > /tmp/$$.conf
+
+    RULES="${RULES/%FLUSH/$FLUSH}"
+    RULES="${COMMON}:/var/log/$HOST/*.log{:$RULES:}"
+    logInfo "logrotate $RULES"
+    echo "$RULES" | sed 's/:/\n/g'> /tmp/$$.conf
     logrotate /tmp/$$.conf
-#   rm /tmp/$$.conf
+    rm /tmp/$$.conf
 }
 
 # =================================== Effective Main Entry =====================================
 
-function _main_ { ACTION="$1"
+function _main_ { USR="$1" ACTION="${2//-/_}"
     
     setupErrorHandling
     
-    # This script has run as root, and redirect output to docker logger,  but fail silenty if not
+    # This script runs as root redirecting output to docker logger; it fails silenty if not root
+    # The CB_<action> must use setpriv to drop uid if necessary
 
     [[ "$(groups)" =~ "root" ]] || exit
-    # exec 1>/proc/1/fd/1 2>&1
-
-    source /usr/bin/local/docker-callback-functions.sh
-
-    rubCB "$ACTION"
+    exec 1>/proc/1/fd/1 2>/proc/1/fd/2
+    logInfo "Running $ACTION for $USR"
+    source bin/docker-callback-functions.sh
+    runCB "$ACTION" "$USR"
 }
 
 _main_ $@

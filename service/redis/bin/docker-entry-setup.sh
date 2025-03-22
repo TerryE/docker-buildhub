@@ -7,6 +7,7 @@ RUNMODE=0777
 USE_VARLOG=true
 REUID=redis
 COMMAND=redis-server
+OPTS="/etc/redis/redis.conf --loglevel verbose"
 
 #  These are the Redis conf settings that need changing
 
@@ -18,7 +19,8 @@ mkdir -m 0770 -p /etc/redis/conf.d
 echo "include /etc/redis/conf.d/*.conf" >> /etc/redis/redis.conf
 
 cat > /etc/redis/conf.d/forum.conf <<-EOC
-	bind ${HOST_IP}
+	protected-mode yes
+        port 0
 	loglevel notice
 	syslog-enabled no
 	databases 4

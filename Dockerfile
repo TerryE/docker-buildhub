@@ -27,7 +27,8 @@ packages=(
     nmap tree xz-utils vim                                    # Misc dev goodies
     apache2 apache2-utils certbot                             # Apache2.4 and Certbot
     $PHP-cli $PHP-fpm $PHP-bcmath $PHP-curl $PHP-gd $PHP-gmp  # PHP CLI and FPM core
-    $PHP-imap $PHP-mbstring $PHP-mysql $PHP-xml $PHP-zip      #   plus extra mods needed
+    $PHP-imap $PHP-mbstring $PHP-mysql $PHP-redis $PHP-xml 
+    $PHP-zip                                                  #   plus extra mods needed
     python3-schedule python3-docker                           # Extra Python Libraries
 )
 apt-get update; apt-get install -y --no-install-recommends ${packages[@]}
@@ -76,8 +77,6 @@ EOD
 #  redis      redis     redis     redis     0666       Implements access control
 #  sshd       root      root      N/A       
 
-COPY  ./bin/docker-entrypoint.sh /usr/local/sbin/docker-entrypoint.sh
-
 RUN --mount=type=bind,source=./.env,target=/tmp/.env <<EOD
 set -eax
 source /tmp/.env
@@ -101,7 +100,6 @@ cat > $FORUM_CNF <<-'EOC'
 	password='$MYSQL_PASSWORD'
 EOC
 chmod 700 $FORUM_CNF; chown $FORUM_USER:$FORUM_USER $FORUM_CNF
-chmod +x /usr/local/sbin/docker-entrypoint.sh
 EOD
 
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["bash", "sbin/docker-entrypoint.sh"]
