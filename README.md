@@ -1,43 +1,107 @@
-\## Background
 
-The scope of this project is a special interest forum that uses [Invision Community (IC)](https://invisioommunity.com/) as its forum engine.  The forum is hosted on a bare / self-managed virtual server (VS) that we've rehosted a few times over the years to accommodate forum growth and to use a supported service stack.  The current 6-core VS with SSD storage costs less than the 2-core + HDD VS that we initially commissioned 6 years ago. Self-management of a bare VS is 2-10× less than an equivalent managed VS or IC service.
+# Invision Community Docker Stack for the Buildhub Forum
 
-I have provided pro-bono SysAdmin and developer contributions to various not-for-profit sites and open-source projects over the years.  However, I am now retired and am winding down these activities, so longer term sysAdmin continuity for this forum is a concern. I therefore decided to move to using a GitHub registered Docker stack for the new Ubuntu VS server both to simplify migration, and to bring its configuration under tight configuration control -- that is with the `docker.io`, `docker-compose` and `git` packages installed as well as a few useful utilities.
+## Table of Contents
 
-The only internet accessible service / port to the underlying host is for SSH access by public key.  A single Docker Compose project is currently implemented (using this GitHub repository) that can be used to spin up separate LAMP stacks for our production and test subdomains; these use disjoint ports so that we only need one external IP address and no reverse proxy.
--  *forum*.  Open ports 80 (for port forwarding), 443
--  *test*.   Open ports 8080 (for port forwarding), 4443 (currently stopped)
+* [Background](#background)
+* [Design Decisions](#design-decisions)
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+* [Configuration](#configuration)
+* [Service Descriptions](#service-descriptions)
+* [Backup and Restore](#backup-and-restore)
+* [Maintenance](#maintenance)
+* [Troubleshooting](#troubleshooting)
+* [Security Considerations](#security-considerations)
+* [Contributing](#contributing)
+* [License](#license)
 
-A major advantage of Docker is that the setup and configuration is encapsulated in a single directory hierarchy, comprising a few dozen files, and about 1K lines of script, config and comments; all controlled through Git.
+## Background
 
-So long as the hosting server has `git` and `docker` installed, then anyone with access to the forum backup files (and copies of the `.env` and `.secret` contents) could install a local copy of the forum with a couple of commands.  This makes it a lot easier for another SysAdmin to understand how our forum's server is configured.  Alternatively anyone else who wants to self-host the Invision Community Suite can buy a VS, install docker and use this project to configure their own service.
+This project provides a Docker Compose stack for deploying an Invision Community (IC) forum on a self-managed virtual private server (VPS).
+
+This stack was originally developed for a special interest forum that uses Invision Community (IC) application as its engine. This was subsequently moved to Docker to simplify host migration, ensure configuration control, and to allow for easier maintenance. This also provides a level of sysAdmin independence because of the clear, reproducible server configuration. This Docker stack is currently hosted on a self-managed 6-core VPS.  SysAdmin of Docker and the host OS is done at the command-line using remote access via SSH with public key authentication. All other IC services are managed from within the IC Admin panel, which is accessible through standard HTTPS.
 
 ## Design Decisions
 
-*  This configuration is openly accessible via GitHub, although I have followed the usual practice of excluding the few dozen lines of private `.env` and `.secret` content; these need to be shared privately.
-*  I have developed this Docker service stack in three iterations:
-    1.  The first was to simplify the forum migration from a legacy IPBoard 4.4.6 + PHP 7.2 + MySQL 5.7 to current versions (and is archived on the `Gen 1` branch ).
-    2.  The second was a stripped down rewrite based on lessons learnt from version one, but that only supports current S/W versions; this version is maintained on this `main` branch.
-    3.  The third implements the changes discussed and scoped in #12.  This includes the switch to `mariadb-server` and the Debian packages which use `glibc` rather than `MUSL`, and use ofUnix sockets rather than Docket networking for inter-container networking.
-*  The Dockerhub official] Debian (`bullseye-slim`) image is used as a basis for all containers, with a single `Dockerfile` used to install all of the relevant Debian packages needed to support the services, including those supporting the IC LAMP stach: `apache2`(`php-cli` and `php-fpm` (together with the PHP modules needed to run the IC Suite), together with the  modules needed to run the website), `certbot`, `redis-server` and `sshd`.
-*  All running services follow the standard Docker practice of each container presenting a single service that runs as a foreground process (though some execute load-balancing child processes), with the Docker runtime using `tini` as the initiator.
-*  I have adopted a mixed logging strategy:
-*  High volume informational logs (such as the Apache2 access logs) are written to a persistent shared `/var/log` volume (as these are only occasionally mined for hacking forensics), and these are trimmed using standard Linux log rotation. Other services use the Docker logging system.
-*   The `sshd` service is mounted onto port 2222 and offers a single user with `/backups` as the home directory. This user has read access to the backups hierarchy; this provides authorised users (who are not sysAmins) public-key read-only access for off-site duplication).
-*  Timed events (such as backup and log rotation) are orchestrated by a small custom Python app in the `scheduling` service.
+* **Docker Images:** The LAMP stack uses the same image for all containers.  This is based on the official Debian `bullseye-slim` image with the other packages added to to support IC, in order to provide a lightweight and stable base.
+* **Service Isolation:** Each container runs a single service, adhering to Docker best practices for maintainability.
+* **Mixed Logging:** High-volume logs (e.g., Apache access logs) are stored in a persistent volume with log rotation, with the other services use Docker logging.
+* **Secure SSH Access:** SSH access is provided to a dedicated user / port with read-only access to the `/backups` volume, to enable secure off-site backup retrieval.
+* **Unix sockets:** Inter-container networking is done via Unix sockets for improved performance and security.
+* **MariaDB and Glibc:** `mariadb-server` is used for the Database and the main advantage of the move to Debian from Alpine is that PHP typically bechmarks about 15% faster using `glibc` compared to `MUSL`.
+* **Main File Trees are bound to the VPS Host File System**.  The containers bind the to the host`/forum` and `/backups` directories where needed, and likewise each service binds to a `conf` and `bin` folder to `/usr/local` mount points and these are use to start and configure each service in a simple and consistent manner.
+* **Custom Python Scheduling:** A small custom Python script within the `scheduling` service uses the Docker API to manage timed events such as backups and log rotation across the other services.
 
-## Customising the Service Context
+## Prerequisites
 
-*  Persistent data that is private to service is mapped through shared Docker volumes.
-*  Each service is configured through its own `service` subfolder.  This contains two sub-folders:
-    *   **`bin`** contains any bash scripts that will be used to configure the service.  This folder is mapped read-only to `/usr/local/sbin` in the running service.
-    *   **`conf`** contains any files that will be used to configure the service.  As small modifications are done by the startup script, this is typically only used when a config file completely replaces the standard default.  If this folder exists, it is mapped read-only to `/usr/local/conf` in the running service.
+* A hosting server preferably running Debian or Ubuntu. The production server is a current 6-core Xeon VPS in a data-centre and running at a typical utilisation for 10-15% though this occasionally peaks at 40% or so.  A test instance will run happily on a 1-core VPS running on a Proxmox host.
+* Docker and Docker Compose installed.
+* Git installed.
 
-Note that the hidden `.env`, and `.secret` files are not under change control and are excluded from the github repository, but allow installation-specific secrets to be passed to running stack. `env.default-template` documents how to set these up.
+The forum is managed and maintained through a common account `forum`, which is a member of the `docker` group, but otherwise non-root,  Admins log in over SSH to their own accounts which they also use for any other occasional sudo action, but the practice is to use the alias `forum='sudo -u forum -i'` to work on the forum.  The`.bash_rc` file for this sets the Docker Environmen  t and some common aliases (such as `dc` for `docker compose`), so executing the `forum` command both switches to the forum user and sets this context.
 
-## Backup
+## Installation
 
-Nightly backup is also managed as a housekeeping function, and backups are written to the backups volume.  The `sshd` service implements ssh access to a restricted account with its home folder mapped to the backups volume.  This enables authorised users to `rsync` the backups to a local offsite copy.
+1.  Clone the repository using `git clone`
+2.  Create `.env` and `.secret` files based on `env.default-template`. These files contain sensitive information and should be securely managed outside of git.
+3.  The project image can be build with `dc build | tee /tmp/forum.log` and that stack started with `dcu`
+4.  About once a month an admin does a routine stack update by doing `dc build --no-cache | tee /tmp/forum.log; dcd; dcu; docker prune -f` to do a complete stack update.
+The forum is only down for seconds so we just do this out of hours without a scheduled downtime.  Since the forum long predates the use of Docker, we've never tested out doing a complete green IC install, but setting new test instance simply involves unpacking the latest backups into `/forum/ and executing bash in the `mysql` and using mysql client to create the forum DB, user, do the grants and source the last SQL backup into the new DB.
+
+## Configuration
+
+* **Environment Variables:** Configure environment variables in the `.env` and `.secret` files.
+* **Service Configuration:** The customi service configurations in the `service/<service>/conf` directories. For example, Apache configurations can be modified in `service/apache/conf/`.
+* **Custom Scripts:** Add custom scripts to the `service/<service>/bin` directories. These scripts are mounted read-only to `/usr/local/sbin` in the running service.
+
+## Service Descriptions
+
+* **Apache2:** Web server for the Invision Community Suite. The configuration is in `service/apache2/conf/`. The `Certbot` tool for obtaining and renewing SSL certificates, ensuring secure HTTPS connections is run as a scheduled action in this container.
+* **PHP:** The PHP-FPM server for executing PHP scripts
+* **Mysql** The MariaDB server for storing forum data. The configuration is in `service/mysql/conf/`.
+* **Redis:** In-memory data store for caching, improving performance.
+* .  This runs as a scheduled callback in the `Apache2` container.
+* **SSHD:** Secure Shell server for backup access, restricted to a dedicated user. Configuration is managed within the docker compose file.
+* **Scheduling:** Python application for timed events, such as backups and log rotation. Configuration is managed in `service/scheduling/`.
+
+## Backup and Restore
+
+* **Backup Process:** Nightly backups are performed by the `scheduling` service and stored in the `/backups` volume.
+* **Backup Retrieval:** Authorised users can retrieve backups via SSH using the dedicated user account.
+* **Restore Process:** To restore, copy the backup files to the appropriate service data volume and restart the services. Example restoring database:
+    1. Stop the mariadb container.
+    2. copy the backup to the mariadb data directory.
+    3. start the mariadb container.
+
+## Maintenance
+
+* **Updating Services:** Use `dc build` to pull and update images, and `dcd` to restart services.
+* **Log Management:** High-volume logs are managed by standard Linux log rotation. Other logs can be managed using Docker logging drivers.
+* **Security Updates:** Regularly update the base Debian image and application dependencies.
+
+## Troubleshooting
+
+* **Service Startup Issues:** Check Docker logs using `dl [container name]`.
+* **Database Connection Errors:** Verify database credentials and network connectivity.
+* **SSL Certificate Issues:** Check Certbot logs and ensure domain name resolution.
+* **SSH Connection Problems:** Verify SSH configuration and public key authentication.
+
+## Security Considerations
+
+* **Environment Variables:** Securely manage `.env` and `.secret` files, restricting access.
+* **SSH Access:** Use public key authentication and restrict SSH access to authorised users.
+* **Firewall:** Configure a firewall to allow only necessary ports (2222, 80, 443, 8080, 4443).
+* **Regular Updates:** Keep the base Debian image and application dependencies up to date.
+* **Docker Security:** Follow Docker security best practices, such as using non-root users in containers.
+
+## Contributing
+
+Contributions are welcome. Please submit pull requests with clear descriptions of the changes.
+
+## License
+
+This project is free to use
 
 ## See Also
 
