@@ -45,7 +45,7 @@ services:
     container_name: ${VHOST}_php
     depends_on:
       - mysql
-    # restart: on-failure
+    restart: on-failure
     volumes:
       - ./target-sbin:/usr/local/sbin:ro
       - ./service/php/bin:/usr/local/bin:ro
@@ -67,7 +67,7 @@ services:
     container_name: ${VHOST}_apache2
     depends_on:
       - php
-    # restart: on-failure
+    restart: on-failure
     volumes:
       - ./target-sbin:/usr/local/sbin:ro
       - ./service/apache2/bin:/usr/local/bin:ro
@@ -75,6 +75,7 @@ services:
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/etc/letsencrypt:/etc/letsencrypt
       - ./data/log:/var/log
+      - /backups:/backups
       - ./data/run:/run
     ports:
       - "${HTTP_PORT}:80"
@@ -86,7 +87,7 @@ services:
       APACHE_LOG_DIR: /var/log/apache2
       PHP_VERSION: ${PHP_VERSION}
 
-  # Cron Service used to schedule event-based housekeeping
+  # Python Service used to schedule event-based housekeeping
   scheduler:
     image: debian:${DEBIAN_VERSION}-extended
     hostname: scheduler
@@ -103,40 +104,18 @@ services:
       - ./data/log:/var/log
       - ./data/run:/run
       - /run/docker.sock:/run/docker.sock
-      - /backups:/backups
-    # restart: on-failure
+    restart: on-failure
     environment:
       VHOST: ${VHOST}
 
-  # SSHD Service for off-siting of system backups
-  sshd:
-    image: debian:${DEBIAN_VERSION}-extended
-    hostname: sshd
-    container_name: ${VHOST}_sshd
-    depends_on:
-      - mysql
-    # restart: on-failure
-    volumes:
-      - ./target-sbin:/usr/local/sbin:ro
-      - ./service/sshd/bin:/usr/local/bin:ro
-      - /etc/ssh:/usr/local/conf:ro
-      - /backups:/backups
-      - ./data/log:/var/log
-      - ./data/run:/run
-    ports:
-      - "${SSH_PORT}:22"
-    environment:
-      VHOST: ${VHOST}
-    secrets:
-      - authorized_keys
-
+  # Redis Service for Local Data Cache
   redis:
     image: debian:${DEBIAN_VERSION}-extended
     hostname: redis
     container_name: ${VHOST}_redis
     depends_on:
       - mysql
-    # restart: on-failure
+    restart: on-failure
     volumes:
       - ./target-sbin:/usr/local/sbin:ro
       - ./service/redis/bin:/usr/local/bin:ro

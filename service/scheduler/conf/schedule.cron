@@ -7,7 +7,7 @@
 # *  *  *  *  *  [user] service  task
 #
 # The php task function is run every 10 mins for IPS backgound tasks to work
- /10 *  *  *  *  forum   php     task-check
+ /5  *  *  *  *  forum   php     task-check
 #
 # The logrotate status file must be persistent for logrotate to work correctly.  This
 # is mapped to a hidden status file in /var/log
@@ -18,8 +18,8 @@
 #
 # The httpd service must check for new certificates once a week (at a random 01:12
 # just to be nice to the cerbot service).
-  12 1  *  *  *  apache2 certbot-check
+# 12 1  *  *  *  apache2 certbot-check
 #
 # Backup the www file hierarchy, plus mysql database
-# 0  4  *  *  *  apache2 nightly-backup
-# 0  4  *  *  *  mysql   nightly-backup
+  0  4  *  *  *  forum   apache2  nightly-backup
+  5  4  *  *  *  forum   mysql    nightly-backup

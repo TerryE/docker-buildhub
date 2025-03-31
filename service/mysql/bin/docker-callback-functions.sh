@@ -1,13 +1,14 @@
 
 function CB_rotate_logs { rotateLogs; }
 
-function CB_backup {
-    ((t = SECONDS))
+function CB_nightly_backup { USR="$1"
+    declare -i t=$SECONDS
     DATE=$(date "+%F")
+    DUMPFILE=/backups/sql-backups/$DATE.sql
     umask 0007
-    mysqldump --opt ipb > /tmp/ipb.sql
-    xz /tmp/ipb.sql
-    chown www-data:www-data /tmp/ipb.sql.xz
-    mv {/tmp/ipb,/backups/sql-backups/$DATE}.sql.xz
+    mysqldump --opt ipb > $DUMPFILE
     logInfo "$(date -u) SQL backup completed in $((SECONDS-t)) secs"
+    nice xz -T 4 $DUMPFILE
+    chown $USR:$USR $DUMPFILE.xz
+    logInfo "$(date -u) + SQL compression completed in $((SECONDS-t)) secs"
 }
