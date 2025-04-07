@@ -24,7 +24,6 @@ function CB_nightly_backup { USR=$1
     [[ "$VHOST" == "forum" ]] || exit   # backups are only carried out on the live forum
 set -vx
     umask 0007
-   
     local DATE=$(date +%F)  LEVEL=2   TYPE="daily"
     if [[ "$DATE.X" =~ "-01.X" ]]; then  LEVEL=1  TYPE="monthly"; fi
     local SNAR=backups/ipb-level${LEVEL}.snar
