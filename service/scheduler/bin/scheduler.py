@@ -1,100 +1,122 @@
 #!/usr/bin/env python3
-
-import docker
+# scheduler.py
+import re
 import schedule
 import time
 import os
 import logging
 import sys
+import socket
+from pathlib import Path
 
 # Configuration
-VHOST = os.environ.get("VHOST")  # Get project name from environment
-SCHEDULE_FILE = "/usr/local/conf/schedule.cron"
-CALLBACK_SCRIPT = "docker-callback.sh"
-
-client = docker.from_env()
+SCHEDULE_FILE  = "/usr/local/conf/schedule.cron"
+TIME_PATTERN   = re.compile(r'^(\*|/([1-9]\d?)|([0-5]?\d))$')
+ENTITY_PATTERN = re.compile(r'^[a-z0-9]+$')
+ACTION_PATTERN = re.compile(r'^[a-z0-9][a-z0-9-]*$')
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
 )
-
 logger = logging.getLogger(__name__)
 
-def remoteExec(service, action, user):
-    """Execute a command in another Docker container."""
-    name = f"{VHOST}_{service}"
+def send_request(service, action, user="root"):
+    """Fire-and-forget socket delivery"""
     try:
-        logger.info(f"Starting '{action}' in {name} (user: {user})")
-        container = client.containers.get(name)
-        exec_command = ["bash", "sbin/docker-callback.sh", user, action]
-        container.exec_run(exec_command, stdout=False, stderr=False, detach=True)
-        logger.info(f"Executed '{action}' in {name} (user: {user})")
-        
-    except docker.errors.NotFound:
-        logger.info(f"Container {name} not found. Skipping execution.")
-    except docker.errors.APIError as e:
-        logger.exception(f"APIError executing '{action}' in {name}: {e}")
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+            sock.connect(f"/run/{service}-request.sock")
+            sock.sendall(f"{user} {action}".encode())
+        logger.debug(f"Sent to {service}: {user} {action}")
     except Exception as e:
-        logger.exception(f"Unexpected error executing '{action}' in {name}: {e}")
+        logger.warning(f"Delivery of {user} {action} failed to {service}: {str(e)}")
 
-def parse_cron_line(line, remote_exec_func):
-    parts = line.split()
+def parse_cron_line(line):
+    """Strict cron line parsing with regex validation"""
+    parts = line.strip().split()
+    if len(parts) not in (7, 8):
+        raise ValueError(f"Expected 7-8 fields, got {len(parts)}")
 
     min, hr, dom, mon, dow = parts[:5]
     user = parts[5] if len(parts) == 8 else 'root'
     service, action = parts[-2:]
 
-    if len(parts) < 7 or dom != '*' or mon != '*' or dow != '*':
-        raise Exception(f"Invalid schedule line: {line}")
-    
-    def do_task(period):
-        period.do(remote_exec_func, service=service, action=action, user=user)
-    
-    def log(at):
-        logger.info(f"{at:<17} {user:<9} {service:<10} {action}")
-        
-    if min.startswith("/") and hr == '*':         # every n mins
-        log(f"every {int(min[1:])} mins")
-        do_task(schedule.every(int(min[1:])).minutes)
-    elif hr.startswith("/") and min == '*':      # every n hrs
-        log(f"every {int(hr[1:])} hours")
-        do_task(schedule.every(int(hr[1:])).hours)
-    else:
-        mm = -1 if min == '*' else int(min)
-        hh = -1 if hr == '*' else int(hr)
-        if mm >= 0 and hh < 0:                        # at mm mins after each hr
-            log(f"hourly at **:{mm:02d}")
-            do_task(schedule.every().hour.at(f":{mm:02d}"))
-        elif mm < 0 and hh >= 0:                      # at hh hrs after each day
-            log(f"daily at {hh:02d}:00")
-            do_task(schedule.every().day.at(f"{hh:02d}:00"))
-        elif mm >= 0 and hh >= 0:                     # every hh:mm each day
-            log(f"daily at {hh:02d}:{mm:02d}")
-            do_task(schedule.every().day.at(f"{hh:02d}:{mm:02d}"))
-        else:
-            raise Exception(f"Invalid schedule line: {line}")
+    # Validate interval syntax rules
+    if min.startswith("/") and hr != "*":
+        raise ValueError("When using /n minutes, hours must be *")
+    if hr.startswith("/") and min != "*":
+        raise ValueError("When using /n hours, minutes must be *")
 
-def load_schedule_from_file(filename, remote_exec_func):
-    """Loads and parse cron-like lines from a file."""
+    # Field format validation
+    checks = [
+        bool(TIME_PATTERN.match(min)),
+        bool(TIME_PATTERN.match(hr)),
+        (dom == '*' and mon == '*' and dow == '*'),
+        bool(ENTITY_PATTERN.match(user)),
+        bool(ENTITY_PATTERN.match(service)),
+        bool(ACTION_PATTERN.match(action))
+    ]
+
+    if not all(checks):
+        raise ValueError("Invalid field syntax")
+
+    return {
+        'min': min,
+        'hr': hr,
+        'user': user,
+        'service': service,
+        'action': action
+    }
+
+def load_schedules():
+    """Load and validate schedule file"""
+    schedules = []
     try:
-        with open(filename, "r") as f:
-            for line in f:
+        with open(SCHEDULE_FILE) as f:
+            for line_num, line in enumerate(f, 1):
                 line = line.strip()
-                if line and not line.startswith("#"):  # Ignore comments and empty lines
-                    parse_cron_line(line, remote_exec_func)
+                if line and not line.startswith("#"):
+                    try:
+                        schedules.append(parse_cron_line(line))
+                    except ValueError as e:
+                        logger.error(f"Line {line_num}: {str(e)}")
+        return schedules
     except FileNotFoundError:
-        raise Exception(f"Schedule file {filename} not found.")
-    except Exception as e:
-        raise Exception(f"Error loading schedule file: {e}")
+        logger.critical(f"Missing schedule file: {SCHEDULE_FILE}")
+        sys.exit(1)
+
+def setup_jobs(schedules):
+    """Configure scheduled jobs with interval validation"""
+    for job in schedules:
+        task = lambda user=job['user'], svc=job['service'], act=job['action']: \
+               send_request(svc, act, user)
+        msg = f"→ {job['user']} {job['service']} {job['action']}"
+
+        if job['min'].startswith("/"):
+            interval = int(job['min'][1:])
+            logger.info(f"Every {interval:2} min   {msg}")
+            schedule.every(interval).minutes.do(task)
+        elif job['hr'].startswith("/"):
+            interval = int(job['hr'][1:])
+            logger.info(f"Every {interval:2} hours {msg}")
+            schedule.every().hour.at(f":{mm:02d}").do(task)
+        else:
+            mm = 0 if job['min'] == '*' else  int(job['min'])
+            hh = 0 if job['hr']  == '*' else  int(job['hr'])
+            hhmm = f"{hh:02d}:{mm:02d}"
+            logger.info(f"Daily at {hhmm} {msg}")
+            schedule.every().day.at(f"{hhmm}").do(task)
 
 if __name__ == "__main__":
     try:
-        load_schedule_from_file(SCHEDULE_FILE, remoteExec)
+        setup_jobs(load_schedules())
+        logger.info("Scheduler started")
         while True:
             schedule.run_pending()
             time.sleep(60)
+    except KeyboardInterrupt:
+        logger.info("Scheduler stopped by user")
     except Exception as e:
-        print(f"Error: {e}")
+        logger.critical(f"Fatal error: {str(e)}")
         sys.exit(1)

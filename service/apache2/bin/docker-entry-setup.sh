@@ -13,5 +13,6 @@ export APACHE_PID_FILE=/var/run/apache2/apache2.pid
 export APACHE_RUN_DIR=/var/run/apache2
 export APACHE_LOCK_DIR=/var/lock/apache2
 export APACHE_LOG_DIR=/var/log/apache2
+export APACHE_ADMIN_IP=$(nslookup blog.ellisons.org.uk | grep Address: | tail -1 | cut -d\  -f 2)
 export HOST_IP=$(ip addr show dev eth0 | awk '/inet /{split($2,a,"/");print a[1]}')
 

@@ -1,5 +1,4 @@
 services:
-
   # All containers use the same image that is based in a standard Debian slim image
   # that has been extended to include the packages needed for all service.
   #
@@ -10,7 +9,7 @@ services:
   # contain the script docker-entrypoint.sh which is used to startup the container.
   # Each container can also binds to /usr/local/conf, if needed.
   #
-  # The mysql data directories is mounted as a persistent docker volumes.
+  # The mysql and redis data directories are each mounted as a persistent docker volume.
   
   # MariaDB service
   mysql:
@@ -23,7 +22,7 @@ services:
       dockerfile: Dockerfile
       args:
         DEBIAN_VERSION: ${DEBIAN_VERSION}
-    # restart: on-failure
+    restart: on-failure
     volumes:
       - ./target-sbin:/usr/local/sbin:ro
       - ./service/mysql/bin:/usr/local/bin:ro
@@ -96,6 +95,7 @@ services:
     depends_on:
       - apache2
       - mysql
+      - php
     volumes:
       - ./target-sbin:/usr/local/sbin:ro
       - ./service/scheduler/bin:/usr/local/bin:ro
@@ -105,6 +105,7 @@ services:
       - ./data/run:/run
       - /run/docker.sock:/run/docker.sock
     restart: on-failure
+    command: ['bin/scheduler.py']
     environment:
       VHOST: ${VHOST}
 

@@ -22,7 +22,6 @@ echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] " \
 PHP="php${PHP_VERSION}"
 packages=(
     logrotate python3-docker tini redis busybox               # Core bits
-    openssh-server openssh-sftp-server rsync                  # OpenSSH
     mariadb-backup mariadb-client mariadb-server              # MariaDB
     nmap tree xz-utils vim                                    # Misc dev goodies
     apache2 apache2-utils certbot                             # Apache2.4 and Certbot
@@ -75,18 +74,14 @@ EOD
 #  mariadb    mysql     mysql     mysql     0666       Implements access control
 #  php        forum     forum     forum     0660       Apache in forum group with g:rw access
 #  redis      redis     redis     redis     0666       Implements access control
-#  sshd       root      root      N/A       
 
 RUN --mount=type=bind,source=./.env,target=/tmp/.env <<EOD
 set -eax
 source /tmp/.env
-BUID=$((FUID+1))
 
 addgroup --gid $FGID $FORUM_USER
 adduser  --uid $FUID --gid $FGID --comment "N/A" --disabled-password $FORUM_USER
 adduser    www-data forum
-adduser  --uid $BUID --gid $FGID --home /backups/home --no-create-home \
-	       --comment "N/A" --disabled-password backups
 
 # Add .my.cnf for FORUM_USER to enable DB access
 FORUM_CNF=/home/forum/.my.cnf
@@ -102,4 +97,8 @@ EOC
 chmod 700 $FORUM_CNF; chown $FORUM_USER:$FORUM_USER $FORUM_CNF
 EOD
 
-ENTRYPOINT ["bash", "sbin/docker-entrypoint.sh"]
+# Use tini as entrypoint
+ENTRYPOINT ["/usr/bin/tini", "--"]
+
+# Command to start the container supervisor
+CMD ["/usr/local/sbin/supervisor.py"]
