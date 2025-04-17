@@ -22,18 +22,26 @@ return   # For now !!!
 
 function CB_nightly_backup { USR=$1
     [[ "$VHOST" == "forum" ]] || exit   # backups are only carried out on the live forum
-set -vx
+
     umask 0007
+
     local DATE=$(date +%F)  LEVEL=2   TYPE="daily"
     if [[ "$DATE.X" =~ "-01.X" ]]; then  LEVEL=1  TYPE="monthly"; fi
-    local SNAR=backups/ipb-level${LEVEL}.snar
 
-    cd /backups
-    cp -p ${SNAR}{,_old}
-
-    TAR_FILES="--file=backups/${DATE}-var_www-${TYPE}.tar --listed-incremental=$SNAR" 
-    TAR_CMD="tar --create --anchored  --directory=/var/www $TAR_FILES --exclude ipb/datastore/* ipb"
+    local SNAR="ipb-level${LEVEL}"
+    local TARBALL="www-${TYPE}-${DATE}"
+    local TAR_FILES="--file=$TARBALL.tar --listed-incremental=$SNAR.snar" 
+    local TAR_CMD="tar --create --anchored  --directory=/var/www $TAR_FILES --exclude ipb/datastore/* ipb"
+    
+    cd /backups/backups
+    # Create new tarball and SNARfile as user $USR
     setpriv --reuid=$USR --regid=$USR --init-groups -- $TAR_CMD
 
+    local MD5=$(md5sum $TARBALL.tar)
+    mv $TARBALL.tar "$TARBALL-${MD5%% *}.tar" 
+
+    MD5=$(md5sum $SNAR.snar)
+    cp --preserve=all $SNAR.snar "$SNAR-${MD5%% *}.snar"
+    
     [[ "$LEVEL" == "1" ]] && cp -p  backups/ipb-level{1,2}.snar
 }
