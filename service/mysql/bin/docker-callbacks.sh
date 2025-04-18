@@ -7,7 +7,7 @@ function CB_nightly_backup { USR="$1"
     DUMPFILE=/backups/sql-backups/$DATE
     logInfo "$(date -u) + SQL compression completed in $((SECONDS-t)) secs"
     umask 0007
-    mysqldump --opt ipb > $DUMPFILE.sql
+    mysqldump --opt --single-transaction --skip-dump-date ipb > $DUMPFILE.sql
     logInfo "$(date -u) SQL backup completed in $((SECONDS-t)) secs"
     nice xz -T 4 $DUMPFILE.sql
     chown $USR:$USR $DUMPFILE.sql.xz
