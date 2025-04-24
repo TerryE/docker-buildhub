@@ -11,6 +11,6 @@ function CB_nightly_backup { USR="$1"
     logInfo "$(date -u) SQL backup completed in $((SECONDS-t)) secs"
     nice xz -T 4 $DUMPFILE.sql
     chown $USR:$USR $DUMPFILE.sql.xz
-    local MD$5=$(md5sum $DUMPFILE.sql.xz)
+    local MD5=$(md5sum $DUMPFILE.sql.xz)
     mv $DUMPFILE{,-${MD5%% *}}.sql.xz
 }

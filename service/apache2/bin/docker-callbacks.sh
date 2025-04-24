@@ -42,6 +42,7 @@ function CB_nightly_backup { USR=$1
 
     MD5=$(md5sum $SNAR.snar)
     cp --preserve=all $SNAR.snar "$SNAR-${MD5%% *}.snar"
-    
-    [[ "$LEVEL" == "1" ]] && cp -p  backups/ipb-level{1,2}.snar
+   
+    # One the first of the month, the level 1 SNAR must be copied to the level 2 for the 2nd's daily incremental
+    [[ "$LEVEL" == "2" ]] || cp -p  backups/ipb-level{1,2}.snar
 }

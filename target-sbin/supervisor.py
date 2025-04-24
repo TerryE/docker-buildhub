@@ -36,15 +36,20 @@ class ContainerSupervisor:
         """Capture and propagate signals to children"""
         signal.signal(signal.SIGTERM, self.handle_signal)
         signal.signal(signal.SIGINT, self.handle_signal)
+        signal.signal(signal.SIGUSR1, self.handle_signal)
         signal.signal(signal.SIGCHLD, self.handle_sigchld)
 
     def handle_signal(self, signum, frame):
         """Graceful shutdown handler"""
-        self.shutdown_requested = True
-        for name, proc in self.processes.items():
-            if proc.poll() is None:
-                proc.send_signal(signum)
-        sys.exit(0)
+        if signum == signal.SIGUSR1:
+             if 'entrypoint' in self.processes and self.processes['entrypoint'].poll() is None:
+                 self.processes['entrypoint'].send_signal(signum)
+        else:
+            self.shutdown_requested = True
+            for name, proc in self.processes.items():
+                if proc.poll() is None:
+                    proc.send_signal(signum)
+            sys.exit(0)
 
     def handle_sigchld(self, signum, frame):
         """On Listener death → restart. On  Entrypoint death → shutdown"""
