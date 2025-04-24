@@ -30,9 +30,9 @@ function rotateLogs {
     FLUSH='postrotate:kill -USR1 1:endscript'
     local -A logMap=(
       [apache2]='maxsize 50M:dateext:FLUSH'
-      [mysql]='su mysql mysql:maxsize 5M:FLUSH'
       [php]='maxsize 5M:FLUSH'
       [redis]='su redis redis:monthly')
+    # [mysql]='su mysql mysql:maxsize 5M:FLUSH'
     HOST=$(hostname)
     RULES="${logMap[$HOST]}"
     [[ -z $RULES ]] && return 1  # Don't rotate if there is no logMap entry

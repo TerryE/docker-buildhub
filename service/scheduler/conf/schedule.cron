@@ -13,7 +13,7 @@
 # is mapped to a hidden status file in /var/log
   5  2  *  *  *  apache2 rotate-logs
   6  2  *  *  *  php     rotate-logs
-  7  2  *  *  *  mysql   rotate-logs
+# 7  2  *  *  *  mysql   rotate-logs   MySQL uses Docker logging
   8  2  *  *  *  redis   rotate-logs
 #
 # The httpd service must check for new certificates once a week (at a random 01:12
