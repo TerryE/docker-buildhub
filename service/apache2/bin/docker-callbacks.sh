@@ -3,10 +3,9 @@ function CB_rotate_logs { rotateLogs; }
 
 function CB_certbot {
 
-return   # For now !!!
-    # If the current certificate is older than ~2 months, then create a certbot HTTP-01
+    # If the current certificate is older than ~1 months, then create a certbot HTTP-01
     # challenge response directory, run certbot and clean up
-    OLDCERT=$(find /etc/letsencrypt/live/forum.${DOMAIN}/fullchain.pem -mtime +61)
+    OLDCERT=$(find /etc/letsencrypt/live/forum.${DOMAIN}/fullchain.pem -mtime +31)
     if [ -n "$OLDCERT" ]; then
       (
         msgInfo "$(date -u) Checking / Renewing *.${DOMAIN} certificates"
