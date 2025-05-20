@@ -7,7 +7,7 @@ RUNMODE=0777
 USE_VARLOG=true
 REUID=redis
 COMMAND=redis-server
-OPTS="/etc/redis/redis.conf --loglevel verbose"
+OPTS="/etc/redis/redis.conf"
 
 #  These are the Redis conf settings that need changing
 

@@ -41,6 +41,7 @@ function rotateLogs {
     RULES="${COMMON}:/var/log/$HOST/*.log{:$RULES:}"
     logInfo "logrotate $RULES"
     echo "$RULES" | sed 's/:/\n/g'> /tmp/$$.conf
+    chmod 06400 /tmp/$$.conf
     logrotate /tmp/$$.conf
     rm /tmp/$$.conf
 }
