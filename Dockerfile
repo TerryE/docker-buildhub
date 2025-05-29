@@ -85,16 +85,32 @@ adduser    www-data forum
 
 # Add .my.cnf for FORUM_USER to enable DB access
 FORUM_CNF=/home/forum/.my.cnf
-cat > $FORUM_CNF <<-'EOC'
+cat > $FORUM_CNF <<-EOC
 	[client]
 	user=$MYSQL_USER
 	password='$MYSQL_PASSWORD'
 	database=$MYSQL_DATABASE
 	[mysqldump]
-	nuser=$MYSQL_USER
+	user=$MYSQL_USER
 	password='$MYSQL_PASSWORD'
 EOC
 chmod 700 $FORUM_CNF; chown $FORUM_USER:$FORUM_USER $FORUM_CNF
+
+# Edit the /etc/logrotate.d files for apache2, php-fpm and redis so that these do the required log rotations
+# Apache2
+sed -i '3i \\tmaxsize 50M\
+\tdateext
+/prerotate/,+4d
+/if /,+2c \\t\tkill -USR1 $(cat /run/apache2/apache2.pid)
+' /etc/logrotate.d/apache2
+# php-fpm
+sed  -i   '1s/php.* /php\/www.log /;2i \\tcreate
+/if /,/fi$/c \\t\tkill -USR1 $(cat /run/php/php8.1-fpm.pid)
+' /etc/logrotate.d/php8.1-fpm
+# redis
+sed -i '2i\ \tsu redis redis\
+\tcreate
+' /etc/logrotate.d/redis-server
 EOD
 
 # Use tini as entrypoint
