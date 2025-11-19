@@ -29,6 +29,8 @@ packages=(
     $PHP-imap $PHP-mbstring $PHP-mysql $PHP-redis $PHP-xml 
     $PHP-zip                                                  #   plus extra mods needed
     python3-schedule python3-docker                           # Extra Python Libraries
+    libapache2-mod-evasive                                    # DDoS defence
+    libapache2-mod-geoip geoip-database                       # Add GeoIP filering
 )
 apt-get update; apt-get install -y --no-install-recommends ${packages[@]}
 EOD
