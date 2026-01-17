@@ -18,6 +18,7 @@ dpkg -i /tmp/debsuryorg-archive-keyring.deb
 echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] " \
      "https://packages.sury.org/php/ $VERSION_CODENAME main" \
      > /etc/apt/sources.list.d/php.list
+rm /tmp/debsuryorg-archive-keyring.deb
 
 PHP="php${PHP_VERSION}"
 packages=(

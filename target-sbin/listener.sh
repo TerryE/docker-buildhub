@@ -10,14 +10,6 @@ function errorHandler { local line_no="$1" cmd="$2" status="$?"
 set -Eeuo pipefail
 trap 'errorHandler $LINENO "$BASH_COMMAND"' ERR
 
-function runCB {
-    # #runCB someAction will run the function CB_someAction if it has been defined
-    #  in the docker-callback-function.sh sourced next
-    local ACTION="$2"
-    local _v="CB_$1"; local -F $_v &>/dev/null || logError "No action '$ACTION' defined";
-    shift; $_v $*
-}
-
 # Generate the logrotate conf file for this container
 
 function rotateLogs {
@@ -32,29 +24,36 @@ function rotateLogs {
       [apache2]='maxsize 50M:dateext:FLUSH'
       [php]='maxsize 5M:FLUSH'
       [redis]='su redis redis:monthly')
-    # [mysql]='su mysql mysql:maxsize 5M:FLUSH'
-    HOST=$(hostname)
+    HOST="$(hostname)"
     RULES="${logMap[$HOST]}"
     [[ -z $RULES ]] && return 1  # Don't rotate if there is no logMap entry
 
     RULES="${RULES/%FLUSH/$FLUSH}"
-    RULES="${COMMON}:/var/log/$HOST/*.log{:$RULES:}"
+    RULES="${COMMON}:/var/log/${HOST}/*.log{:${RULES}:}"
     logInfo "logrotate $RULES"
+    umask 0066
     echo "$RULES" | sed 's/:/\n/g'> /tmp/$$.conf
-    chmod 06400 /tmp/$$.conf
     logrotate /tmp/$$.conf
     rm /tmp/$$.conf
 }
+
+# The bin directory is specific to each service. Its docker-callbacks.sh script defines the set of
+# CB_<name> functions that can be executed by the scheduler in that service. Hence (for example)
+# the scheduler can issue a "mysql nightly-backup", but this is ignored if the callback function
+# CB_nightly_backup hasn't been defined in the service, and the service defines what this function
+# does. 
+#   
+# Notes that since the read split the message into words, the actions cannot embed spaces, etc.
 
 source /usr/local/bin/docker-callbacks.sh
 
 while read -r user action; do
     DTS=$(date -u)
     callbackFn="CB_${action//-/_}"
-    if [[ $(type -t "$callbackFn") == "function" ]]; then
+    if [[ $(type -t "${callbackFn}") == "function" ]]; then
     	logInfo "Running $action for $user"
         # The CB_<action> must use setpriv to drop uid if necessary
-        $callbackFn $user
+        ${callbackFn} "${user}"
     else
         logInfo "Unknown action: $action"
     fi
