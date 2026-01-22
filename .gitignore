@@ -3,3 +3,4 @@ data
 .env
 .secrets
 logs/*
+service/*/bin/.mod_lib/

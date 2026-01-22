@@ -5,7 +5,6 @@
 
 CXT="$(dirname "$(readlink -fm "$0")")"
 source "$CXT"/.env  # uses  PHP_VERSION  MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD FIUD FGID
-rm "$CTX"/.env
 
 # shellcheck disable=SC2068 disable=SC2206
 function install_packages {    
