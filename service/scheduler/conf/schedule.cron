@@ -16,9 +16,10 @@
 # 7  2  *  *  *  mysql   rotate-logs   MySQL uses Docker logging
   8  2  *  *  *  redis   rotate-logs
 #
-# The httpd service must check for new certificates once a week (at a random 01:12
-# just to be nice to the cerbot service).
-# 12 1  *  *  *  apache2 certbot-check
+# The httpd service must check for new certificates daily (at a random 01:12 to be
+# nice to the cerbot service). The check is skipped if the current cert is less than
+# 2 months old
+  12 1  *  *  *  apache2 certbot-check
 #
 # Backup the www file hierarchy, plus mysql database
   0  4  *  *  *  forum   apache2  nightly-backup
