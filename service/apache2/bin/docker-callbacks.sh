@@ -1,7 +1,7 @@
 
 function CB_rotate_logs { rotateLogs; }
 
-function CB_certbot {
+function CB_certbot_check {
 
     # If the current certificate is older than ~2 months, then create a certbot HTTP-01
     # challenge response directory, run certbot and clean up
