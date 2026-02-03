@@ -21,7 +21,7 @@ function rotateLogs {
     COMMON='weekly:rotate 4:create:compress:missingok:notifempty:delaycompress:sharedscripts:minsize 1M'
     FLUSH='postrotate:kill -USR1 1:endscript'
     local -A logMap=(
-      [apache2]='maxsize 50M:dateext:FLUSH'
+      [apache2]='maxsize 50M:rotate 14:oateext:FLUSH'
       [php]='maxsize 5M:FLUSH'
       [redis]='su redis redis:monthly')
     HOST="$(hostname)"
