@@ -2,7 +2,6 @@
 function CB_rotate_logs { rotateLogs; }
 
 function CB_task_check { USR="$1"
-set -vx
     # Task can take a long time to run so skip if bash is already running. Do
     # this by doing ps -C bash. This should count 2 (this bash + 'ps -C bash')
     NBASH=$(ps --no-headers  -C bash -o pid | wc -l)

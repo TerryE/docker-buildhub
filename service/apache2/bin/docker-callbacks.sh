@@ -6,9 +6,9 @@ function CB_certbot_check {
     # If the current certificate is older than ~2 months, then create a certbot HTTP-01
     # challenge response directory, run certbot and clean up
     OLDCERT=$(find /etc/letsencrypt/live/forum.${DOMAIN}/fullchain.pem -mtime -61)
-    [[ -n $OLDCERT ]] && ( msgInfo "$(date -u) Skipping certificate renewal"; return; )
+    [[ -n $OLDCERT ]] && ( echo "$(date -u) Skipping certificate renewal"; return; )
       
-    msgInfo "$(date -u) Checking / Renewing *.${DOMAIN} certificates"
+    echo "$(date -u) Checking / Renewing *.${DOMAIN} certificates"
     mkdir /var/www/acme; chown www-data:www-data /var/www/acme
     certbot certonly -n -d forum.${DOMAIN},www.${DOMAIN},test.${DOMAIN} \
                      --webroot -w /var/www/acme

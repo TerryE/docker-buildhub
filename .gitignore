@@ -4,3 +4,4 @@ data
 .secrets
 logs/*
 service/*/bin/.mod_lib/
+service/*/conf/.maxmind/
