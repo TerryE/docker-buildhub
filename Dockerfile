@@ -25,13 +25,16 @@ packages=(
     logrotate python3-docker tini redis busybox               # Core bits
     mariadb-backup mariadb-client mariadb-server              # MariaDB
     nmap tree xz-utils vim                                    # Misc dev goodies
-    apache2 apache2-utils certbot                             # Apache2.4 and Certbot
+    apache2 apache2-utils   certbot                           # Apache2.4 and Certbot
     $PHP-cli $PHP-fpm $PHP-bcmath $PHP-curl $PHP-gd $PHP-gmp  # PHP CLI and FPM core
     $PHP-imap $PHP-mbstring $PHP-mysql $PHP-redis $PHP-xml 
+    fail2ban iptables                                         # fail2ban support
+    restic                                                    # restic backup
     $PHP-zip                                                  #   plus extra mods needed
     python3-schedule python3-docker                           # Extra Python Libraries
+    libapache2-mod-security2 modsecurity-crs                  # Mod-Security and OWASP Core Rule Set
     libapache2-mod-evasive                                    # DDoS defence
-    libapache2-mod-geoip geoip-database                       # Add GeoIP filering
+    libapache2-mod-geoip geoip-database libmaxminddb0         # Add GeoIP filering
 )
 apt-get update; apt-get install -y --no-install-recommends ${packages[@]}
 EOD

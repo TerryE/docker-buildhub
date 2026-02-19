@@ -2,28 +2,31 @@
 
 ## Background
 
-This project provides the Docker Compose stack for the Buildhub Forum that uses a LAMP stack running Invision Community (IC) on a self-managed virtual private server (VPS).  This stack was originally developed for native VPS hosted LAMP stack, but this was subsequently migrated to Docker Compsose during VPS upgrade in order to simplify host migration, to ensure configuration control, and to allow for easier maintenance.
+This project provides the Docker Compose stack for the Buildhub Forum to provide a LAMP stack running Invision Community Suite (ICS) on a self-managed virtual private server (VPS).  This stack was originally developed for VPS hosted LAMP stack, but thid was subsequently migrated during an VPS upgrade in early 2022 to Docker Compsose in order to simplify host migration, to ensure configuration control, and to allow for easier maintenance.   
 
-Using Docker Compose also provides a level of sysAdmin independence because of the clear, reproducible server configuration. This forum is currently hosted on a dedicated self-managed 6-core VPS.  System administration of Docker and the host OS is done at the command-line using remote access via SSH with public key authentication. All other IC services are managed from within the IC Admin panel, which is accessible through standard HTTPS.
+This forum is currently hosted on a dedicated self-managed 6-core VPS.  System administration of Docker and the host OS is done at the command-line using remote access via SSH with public key authentication. All other IC services are managed from within the IC Admin panel, which is accessible through standard HTTPS.
 
 ## Design Decisions for the Docker Stack
 
-* **Docker Images:** The LAMP stack uses the same image for all containers.  This is based on the official Debian `bullseye-slim` image with the other packages added to to support IC, in order to provide a lightweight and stable base.
+* **Docker Images:** The LAMP stack uses the same image for *all* containers.  This is based on the official Debian `trixie-slim` image with the other packages added as needed to support stack services.
 * **Service Isolation:** Each container runs a single service, adhering to Docker best practices for maintainability.
-* **Mixed Logging:** High-volume logs (e.g., Apache access logs) are stored in a persistent volume with log rotation, with the other services use Docker logging.
+* **Mixed Logging:** High-volume logs (e.g. Apache access logs) are stored in a persistent volume with log rotation, with low log volume services using Docker logging.
 * **Unix sockets:** Inter-container networking is done via Unix sockets for improved performance and security.
 * **MariaDB:**`mariadb-server` is used for the Database.
 * **Glibc RTL:** The main reason for the move from Alpine to Debian is that PHP typically bechmarks about 15% faster using `glibc` compared to `MUSL`.
-* **The Main Forum File Trees are bound to the VPS Host File System**.  The containers bind the to the host`/forum` and `/backups` directories where needed, and likewise each service binds to a `conf` and `bin` folder to `/usr/local` mount points and these are use to start and configure each service in a simple and consistent manner.
-* **Custom Python Scheduling:** A small custom Python script within the `scheduling` service uses the Docker API to manage timed events such as backups and log rotation across the other services.
+* **The Main Forum File Trees are bound to the VPS Host File System**.  The containers bind   to the host`/forum` and `/backups` directories where needed, and likewise each service binds to a  `bin` and `conf` sub-folder to `/usr/local` mount points and these are use to start and configure each service in a simple and consistent manner.
+* **Custom Python Service Manager**. A small custom Python script within the all services to manage clean service startup and shutdown.  It also spawns a subprocess to act as a listener for scheduled actions to be run in the containers
+* **Custom Python Scheduling:** A small custom Python script within the `scheduling` service passes timed events such as backups and log rotation to the other services using their listener sockets.
+* **Configured Secrity**. The server uses a tailored `ufw` with the stack using `fail2ban`, Geo-blocking and ip table filtering to protect service integrity.
 * **DR Backup Sets On Cloud Storage:** Daily Backups are moved off VPS to cloud storage.  Other admins have access accounts to this backup repository.
 
 ## Service Overview
 
-* **Apache2:** Web server for the Invision Community Suite. The configuration is in `service/apache2/conf/`. The `Certbot` tool for obtaining and renewing SSL certificates, ensuring secure HTTPS connections is run as a scheduled action in this container.
-* **PHP:** The PHP-FPM server for executing PHP scripts
-* **Mysql** The MariaDB server for storing forum data. The configuration is in `service/mysql/conf/`.
+* **Apache2:** Web server hosts the ICS application over HTTPS.  `Certbot` is used to obtaining and renewing the SSL certificates.
+* **PHP:** The PHP-FPM servive executes PHP scripts
+* **Mysql:** The MariaDB server for storing forum data. 
 * **Redis:** In-memory data store for caching, improving performance.
+* **Fail2ban:** This is used to scan the Apache log files for signs of brute-force attacks or suspicious activity—such as too many failed login attempts it dynamically bans the offending IPs using firewall rules in iptables shared with `Apache2`.
 * **Scheduling:** Python application for timed events, such as backups and log rotation. Configuration is managed in `service/scheduling/`.
 
 The Service Archtecture is described in a separate document: [Service Architecture](./Service_Architecture.md).
@@ -62,8 +65,8 @@ Nightly backups are performed by the `scheduling` service and stored in the `/ba
 
 ## Security Considerations
 
-* **Environment Variables:** Securely manage `.env` and `.secret` files, restricting access.  Everything else is under change contol in thid Github repository.
-* **Firewall:** Configure a firewall to allow only necessary ports (2222, 80, 443, 8080, 4443).
+* **Environment Variables:** Securely manage `.env` and `.secret` files, restricting access.  Everything else is under change contol in this Github repository.
+* **Firewall:** `ufw` allows incoming requests only the necessary ports (80, 443, 8080, 4443), plus SSH locked down to speific Admin IPs. Geo-blocking + `Fail2ban` + Docker `iptables` are used within the Docker stack to block DoS and other suspicious activities 
 * **Regular Updates:** Keep the base Debian image and application dependencies up to date.
 * **Docker Security:** Follow Docker security best practices, such as using non-root users in containers.
 
@@ -73,7 +76,7 @@ Contributions are welcome. Please submit pull requests with clear descriptions o
 
 ## License
 
-This project is free to use
+This project is free to use.
 
 ## See Also
 

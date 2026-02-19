@@ -10,119 +10,122 @@ services:
   # Each container can also binds to /usr/local/conf, if needed.
   #
   # The mysql and redis data directories are each mounted as a persistent docker volume.
+  x-template:
+    image: debian:${DEBIAN_VERSION}-${IMAGE_EXTENSION}
+    restart: on-failure
+    environment:
+      VHOST: ${VHOST}
+    volumes:
+      - ./target-sbin:/usr/local/sbin:ro
+      - ./data/log:/var/log
+      - ./data/run:/run
+      - /backups:/backups
   
   # MariaDB service
   mysql:
-    image: debian:${DEBIAN_VERSION}-extended
+    extends: x-template
     hostname: mysql
     container_name: ${VHOST}_mysql
-    # this doesn't depend on other services, so it is used to build the debian image.
+    # this service doesn't depend on other services, so it is used to build the debian image.
     build:
       context: .
       dockerfile: Dockerfile
       args:
         DEBIAN_VERSION: ${DEBIAN_VERSION}
-    restart: on-failure
     volumes:
-      - ./target-sbin:/usr/local/sbin:ro
       - ./service/mysql/bin:/usr/local/bin:ro
       - ./service/mysql/conf:/usr/local/conf:ro
       - mysql_data:/var/lib/mysql
-      - ./data/log:/var/log
-      - ./data/run:/run
-      - /backups:/backups
     environment:
       TZ: ${TZ}
-      VHOST: ${VHOST}
     security_opt:
       - seccomp:unconfined
 
   # PHP FPM Service
   php:
-    image: debian:${DEBIAN_VERSION}-extended
+    extends: x-template
     hostname: php
     container_name: ${VHOST}_php
     depends_on:
       - mysql
-    restart: on-failure
     volumes:
-      - ./target-sbin:/usr/local/sbin:ro
       - ./service/php/bin:/usr/local/bin:ro
       - ./service/php/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
-      - ./data/log:/var/log
-      - ./data/run:/run
     secrets:
       - forum-token
       - redis-pwd
     environment:
-      VHOST: ${VHOST}
       PHP_VERSION: ${PHP_VERSION}
 
   # Apache2.4 Service
   apache2:
-    image: debian:${DEBIAN_VERSION}-extended
+    extends: x-template
     hostname: apache2
     container_name: ${VHOST}_apache2
     depends_on:
       - php
-    restart: on-failure
     volumes:
-      - ./target-sbin:/usr/local/sbin:ro
       - ./service/apache2/bin:/usr/local/bin:ro
       - ./service/apache2/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
       - ./data/etc/letsencrypt:/etc/letsencrypt
-      - ./data/log:/var/log
-      - /backups:/backups
-      - ./data/run:/run
+      - ./data/root:/root
     ports:
       - "${HTTP_PORT}:80"
       - "${HTTPS_PORT}:443"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
     environment:
-      VHOST: ${VHOST}
       DOMAIN: ${DOMAIN}
       HTTPS_PORT: ${HTTPS_PORT}
-      APACHE_LOG_DIR: /var/log/apache2
+      APACHE_ADMIN_IP: ${APACHE_ADMIN_IP}
       PHP_VERSION: ${PHP_VERSION}
+
+# # Fail2ban Service for Security
+# fail2ban:
+#   extends: x-template
+#   # hostname: fail2ban
+#   container_name: ${VHOST}_fail2ban
+#   depends_on:
+#     - apache2
+#   network_mode: "service:apache2"
+#   cap_add:
+#     - NET_ADMIN         # required for iptables
+#     - NET_RAW           # sometimes needed
+#   volumes:
+#     - ./service/fail2ban/bin:/usr/local/bin:ro
+#     - ./service/fail2ban/conf:/usr/local/conf:ro
+#     # For testing use the prod apache2 logs
+#     - ~/prod/data/log/apache2:/var/log/apache2:ro
 
   # Python Service used to schedule event-based housekeeping
   scheduler:
-    image: debian:${DEBIAN_VERSION}-extended
+    extends: x-template
     hostname: scheduler
     container_name: ${VHOST}_scheduler
-    domainname: buildhub.local
     depends_on:
       - apache2
       - mysql
       - php
     volumes:
-      - ./target-sbin:/usr/local/sbin:ro
       - ./service/scheduler/bin:/usr/local/bin:ro
       - ./service/scheduler/conf:/usr/local/conf:ro
       - ${IPB_ROOT}:/var/www/ipb
-      - ./data/log:/var/log
-      - ./data/run:/run
       - /run/docker.sock:/run/docker.sock
-    restart: on-failure
     command: ['bin/scheduler.py']
-    environment:
-      VHOST: ${VHOST}
 
   # Redis Service for Local Data Cache
   redis:
-    image: debian:${DEBIAN_VERSION}-extended
+    extends: x-template
     hostname: redis
     container_name: ${VHOST}_redis
     depends_on:
       - mysql
-    restart: on-failure
     volumes:
-      - ./target-sbin:/usr/local/sbin:ro
       - ./service/redis/bin:/usr/local/bin:ro
       - redis_data:/var/lib/redis
-      - ./data/log:/var/log
-      - ./data/run:/run
     secrets:
       - redis-pwd
 
