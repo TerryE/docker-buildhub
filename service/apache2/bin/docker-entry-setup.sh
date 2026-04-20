@@ -32,3 +32,7 @@ export APACHE_LOG_DIR=/var/log/apache2
 export APACHE_GEO_MMDB=${countyDB}
 export HOST_IP=$(ip addr show dev eth0 | awk '/inet /{split($2,a,"/");print a[1]}')
 
+# Make sure /sitemap/ folder exits and clean up dangling pidfile
+mkdir -p /var/www/sitemap/
+chown $APACHE_RUN_USER:$APACHE_RUN_USER  /var/www/sitemap/
+rm -f /run/apache2/apache2.pid

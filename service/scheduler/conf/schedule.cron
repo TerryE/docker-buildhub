@@ -9,6 +9,9 @@
 # The php task function is run every 10 mins for IPS backgound tasks to work
  /5  *  *  *  *  forum   php     task-check
 #
+# Update the /var/www/sitemap/ hierarchy
+  * /1  *  *  *  forum   apache2  sitemap-gen 
+
 # The logrotate status file must be persistent for logrotate to work correctly.  This
 # is mapped to a hidden status file in /var/log
   5  2  *  *  *  apache2 rotate-logs
@@ -22,5 +25,5 @@
   12 1  *  *  *  apache2 certbot-check
 #
 # Backup the www file hierarchy, plus mysql database
-  0  4  *  *  *  forum   apache2  nightly-backup
+  30 3  *  *  *  forum   apache2  nightly-backup
   5  4  *  *  *  forum   mysql    nightly-backup

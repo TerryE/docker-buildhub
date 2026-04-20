@@ -99,8 +99,9 @@ def setup_jobs(schedules):
             schedule.every(interval).minutes.do(task)
         elif job['hr'].startswith("/"):
             interval = int(job['hr'][1:])
-            logger.info(f"Every {interval:2} hours {msg}")
-            schedule.every().hour.at(f":{mm:02d}").do(task)
+            mm = 0 if job['min'] == '*' else  int(job['min'])
+            logger.info(f"Every {interval:02d} hours at {mm:02d} min {msg}")
+            schedule.every(interval).hours.at(f":{mm:02d}").do(task)
         else:
             mm = 0 if job['min'] == '*' else  int(job['min'])
             hh = 0 if job['hr']  == '*' else  int(job['hr'])

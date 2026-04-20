@@ -41,3 +41,13 @@ function CB_nightly_backup { USR=$1
     # One the first of the month, the level 1 SNAR must be copied to the level 2 for the 2nd's daily incremental
     [[ "$LEVEL" == "2" ]] || cp -p  backups/ipb-level{1,2}.snar
 }
+
+function CB_sitemap_gen { USR="$1"
+    # Task can take a long time to run so skip if bash is already running. Do
+    # this by doing ps -C bash. This should count 2 (this bash + 'ps -C bash')
+    TASK_PHP="/usr/local/sbin/generate-sitemaps.php"
+    TASK_CMD="php $TASK_PHP -F"
+    [[ $USR != 'root' ]] && \
+        SETPRIV="exec setpriv --reuid=$USR --regid=$USR --init-groups --"
+    $SETPRIV $TASK_CMD
+}
