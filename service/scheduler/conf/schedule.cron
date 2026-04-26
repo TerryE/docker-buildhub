@@ -10,7 +10,10 @@
  /5  *  *  *  *  forum   php     task-check
 #
 # Update the /var/www/sitemap/ hierarchy
-  * /1  *  *  *  forum   apache2  sitemap-gen 
+  * /1  *  *  *  forum   apache2  sitemap-gen
+
+# Regenerate the plain-text sitemap (sitemap.txt) every 30 mins
+ /30  *  *  *  *  forum   apache2  sitemap-txt-gen
 
 # The logrotate status file must be persistent for logrotate to work correctly.  This
 # is mapped to a hidden status file in /var/log

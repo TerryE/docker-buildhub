@@ -51,3 +51,16 @@ function CB_sitemap_gen { USR="$1"
         SETPRIV="exec setpriv --reuid=$USR --regid=$USR --init-groups --"
     $SETPRIV $TASK_CMD
 }
+
+function CB_sitemap_txt_gen { USR="$1"
+    # Skip if a previous run is still going (ps -C bash should be 2: this + 'ps -C bash')
+    NBASH=$(ps --no-headers -C bash -o pid | wc -l)
+    [[ $NBASH -gt 2 ]] && return
+    TASK_PHP="/usr/local/sbin/generate-sitemap-txt.php"
+    # Script reads DB creds from conf_global.php (path passed via env)
+    export BUILDHUB_CONF_GLOBAL="/var/www/ipb/conf_global.php"
+    TASK_CMD="php $TASK_PHP"
+    [[ $USR != 'root' ]] && \
+        SETPRIV="exec setpriv --reuid=$USR --regid=$USR --init-groups --"
+    $SETPRIV $TASK_CMD
+}
